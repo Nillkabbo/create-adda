@@ -1,17 +1,25 @@
 const START = '<!-- banglish-agent:start -->';
+// Marks a block whose file this tool created, so --remove may delete the file afterwards.
+const START_CREATED = '<!-- banglish-agent:start created-file -->';
 const END = '<!-- banglish-agent:end -->';
 
 function findBlock(text) {
-  const start = text.indexOf(START);
+  const created = text.indexOf(START_CREATED);
+  const start = created !== -1 ? created : text.indexOf(START);
   if (start === -1) return null;
   const end = text.indexOf(END, start);
   if (end === -1) return null;
-  return { start, end: end + END.length };
+  return { start, end: end + END.length, created: created !== -1 };
 }
 
-export function upsertBlock(text, body) {
-  const inner = `${START}\n${body.trim()}\n${END}`;
+export function blockCreatedFile(text) {
+  return Boolean(findBlock(text)?.created);
+}
+
+export function upsertBlock(text, body, { createdFile = false } = {}) {
   const found = findBlock(text);
+  const startMarker = (found ? found.created : createdFile) ? START_CREATED : START;
+  const inner = `${startMarker}\n${body.trim()}\n${END}`;
   if (found) return text.slice(0, found.start) + inner + text.slice(found.end);
   const existing = text.trimEnd();
   return existing ? `${existing}\n\n${inner}\n` : `${inner}\n`;

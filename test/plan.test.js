@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { buildPlan, applyPlan } from '../src/plan.js';
 import { sandbox, read, exists, write } from './helpers.js';
 
-const START = '<!-- banglish-agent:start -->';
+// Prefix shared by both start markers (plain and created-file).
+const START = '<!-- banglish-agent:start';
 
 function install(env, options) {
   const plan = buildPlan(options, env);
@@ -117,7 +118,7 @@ test('re-running refreshes an outdated block without duplicating anything', () =
   const { repo, env } = sandbox();
   write(
     join(repo, 'CLAUDE.local.md'),
-    `# Mine\n\n${START}\nOld rule text.\n<!-- banglish-agent:end -->\n`,
+    '# Mine\n\n<!-- banglish-agent:start -->\nOld rule text.\n<!-- banglish-agent:end -->\n',
   );
   const options = { targets: ['claude', 'cursor'], scopes: { claude: 'project', cursor: 'project' } };
   install(env, options);
@@ -190,4 +191,14 @@ test('remove keeps .cursor when it holds other rules', () => {
   install(env, { ...options, remove: true });
 
   assert.equal(read(join(repo, '.cursor', 'rules', 'team.mdc')), 'team rule\n');
+});
+
+test('remove keeps a shared file that existed before install, even when it was empty', () => {
+  const { home, env } = sandbox();
+  write(join(home, '.gemini', 'GEMINI.md'), '');
+  install(env, { targets: ['gemini'] });
+  install(env, { targets: ['gemini'] }); // a re-run must not forget the file pre-existed
+  install(env, { targets: ['gemini'], remove: true });
+
+  assert.equal(read(join(home, '.gemini', 'GEMINI.md')), '');
 });

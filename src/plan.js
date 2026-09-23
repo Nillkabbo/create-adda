@@ -9,7 +9,13 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
-import { upsertBlock, removeBlock, addGitignoreLines, removeGitignoreLines } from './blocks.js';
+import {
+  upsertBlock,
+  removeBlock,
+  blockCreatedFile,
+  addGitignoreLines,
+  removeGitignoreLines,
+} from './blocks.js';
 import { TARGETS, rulesBody } from './targets.js';
 import { findGitRoot } from './paths.js';
 
@@ -34,7 +40,10 @@ function installActions(spec, path, body, options, env) {
     return [{ type: 'write', path: resolve(env.cwd, options.out), content: spec.render(body) }];
   }
   if (spec.kind === 'print') return [{ type: 'print', title: spec.title, content: spec.render(body) }];
-  const content = spec.kind === 'block' ? upsertBlock(readOrEmpty(path), body) : spec.render(body);
+  const content =
+    spec.kind === 'block'
+      ? upsertBlock(readOrEmpty(path), body, { createdFile: !existsSync(path) })
+      : spec.render(body);
   return [{ type: 'write', path, content }];
 }
 
@@ -45,7 +54,8 @@ function removeActions(spec, path, root) {
   const text = readOrEmpty(path);
   const stripped = removeBlock(text);
   if (stripped === text) return [];
-  return stripped ? [{ type: 'write', path, content: stripped }] : [{ type: 'delete', path }];
+  if (!stripped && blockCreatedFile(text)) return [{ type: 'delete', path }];
+  return [{ type: 'write', path, content: stripped }];
 }
 
 function gitignoreActions(project, entries, remove) {
