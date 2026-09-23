@@ -1,0 +1,41 @@
+{
+  "name": "create-banglish-agent",
+  "version": "0.1.0",
+  "description": "Install a personal 'Banglish in chat, English in everything shipped' rule into your AI coding tools.",
+  "type": "module",
+  "bin": {
+    "create-banglish-agent": "./bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20.17"
+  },
+  "keywords": [
+    "banglish",
+    "claude-code",
+    "cursor",
+    "codex",
+    "gemini",
+    "ai-agent",
+    "cli"
+  ],
+  "author": "MD. RAKIBUL HASAN <aporbo.hasan@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nillkabbo/create-banglish-agent.git"
+  },
+  "homepage": "https://github.com/Nillkabbo/create-banglish-agent#readme",
+  "bugs": {
+    "url": "https://github.com/Nillkabbo/create-banglish-agent/issues"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.7.2"
+  }
+}
