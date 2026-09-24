@@ -18,7 +18,7 @@ The interactive setup asks which tools to configure, where the rule should live,
 | Cursor | `.cursor/rules/adda.mdc` at the git root (gitignored) | Prints text to paste into Settings → Rules → User Rules |
 | Codex CLI | — | `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`) |
 | Gemini CLI | — | `~/.gemini/GEMINI.md` |
-| Hermes Agent | — | `$HERMES_HOME/SOUL.md` (default `~/.hermes/SOUL.md`) |
+| Hermes Agent | — | `$HERMES_HOME/SOUL.md` (default `~/.hermes/SOUL.md`); run Hermes once first so it creates this file |
 | Web AI (ChatGPT, Claude.ai, Gemini) | — | Prints a prompt to paste into custom instructions |
 
 > **Cursor (limited):** the rule installs and Cursor loads it, but Cursor's Auto model (the only one on free plans) didn't follow it in our tests and kept replying in English. Named models on paid plans are untested.
@@ -106,8 +106,8 @@ The Claude Code plugin reads them at the start of every session. For the other t
 Examples:
 
 ```bash
-# Global setup for Claude Code, Codex, and Gemini CLI
-npx create-adda --target claude,codex,gemini --scope global --yes
+# Global setup for Claude Code, Codex, Gemini CLI, and Hermes Agent
+npx create-adda --target claude,codex,gemini,hermes --scope global --yes
 
 # Copy the web prompt to the clipboard (macOS)
 npx create-adda --print web | pbcopy
