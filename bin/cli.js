@@ -178,7 +178,8 @@ async function refreshInstalled(env, prefsDir, flags) {
   const plan = buildRefreshPlan(env);
   const notes = () => plan.warnings.forEach((warning) => console.log(paint('yellow', `! ${warning}`)));
   if (!plan.actions.length) {
-    console.log('\nEvery installed rule here is up to date (the Claude Code plugin updates itself).');
+    console.log('\nEvery installed rule here is up to date.');
+    console.log('The Claude Code plugin reads your preferences itself; update it with claude plugin update adda@adda.');
     return notes();
   }
   console.log(paint('bold', '\nOut-of-date rules:'));

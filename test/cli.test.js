@@ -296,6 +296,8 @@ test('preference flags without --target save, and report nothing to refresh on a
   assert.equal(code, 0);
   assert.match(stdout, /tone: formal/);
   assert.match(stdout, /Every installed rule here is up to date/);
+  assert.match(stdout, /plugin reads your preferences itself; update it with claude plugin update adda@adda/);
+  assert.doesNotMatch(stdout, /updates itself/);
   assert.equal(exists(join(box.repo, 'CLAUDE.local.md')), false);
 });
 
