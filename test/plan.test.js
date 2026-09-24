@@ -271,3 +271,18 @@ test('global scope with a missing HOME fails with a clear message and writes not
   );
   assert.equal(exists(home), false);
 });
+
+test('installs write the rules with the personal preferences applied, for every target', () => {
+  const { repo, home, env } = sandbox();
+  const preferences = { script: 'bengali', tone: 'formal', custom: '- Keep replies short.' };
+  const plan = install({ ...env, preferences }, {
+    targets: ['claude', 'codex', 'web'],
+    scopes: { claude: 'project' },
+  });
+
+  for (const text of [read(join(repo, 'CLAUDE.local.md')), read(join(home, '.codex', 'AGENTS.md')), plan.actions.find((a) => a.type === 'print').content]) {
+    assert.match(text, /Talk to the developer in Bangla, written in Bengali script/);
+    assert.match(text, /"apni"/);
+    assert.match(text, /- Keep replies short\./);
+  }
+});

@@ -60,12 +60,33 @@ claude plugin install adda@adda --scope user
 
 ## The rule
 
-- Chat in Banglish (Bengali in Latin script), technical terms kept in English, never Bengali script.
+- Chat in Banglish (Bengali in Latin script), technical terms kept in English, never Bengali script unless you choose it. Quoted Bengali-script text stays in quotes or code spans.
 - Everything that leaves the chat is professional English.
 - Banglish by default; switches to English only when you ask, until you ask to switch back.
 - Works alongside skills and plugins: they decide content, format, and length; this rule decides chat language. Subagent and inter-agent messages stay in English.
 
 Full text: [`src/rules.md`](src/rules.md).
+
+## Your preferences
+
+Adda's default is Banglish in Latin letters with a casual peer tone. You can change that once and every tool follows it:
+
+```bash
+npx create-adda --script bengali   # chat in Bangla script instead of Latin letters
+npx create-adda --tone formal      # "apni" instead of "tumi"
+npx create-adda --prefs            # show what is saved and where
+```
+
+Anything else goes in your own rule file, `~/.config/adda/custom.md` (or `$XDG_CONFIG_HOME/adda/custom.md`). For example:
+
+```markdown
+- Keep every reply under five lines.
+- Call me "bhai".
+```
+
+Your preferences are added after Adda's rules and win wherever the two conflict. Shipped output (code, commits, docs) always stays English.
+
+The Claude Code plugin reads them at the start of every session. For the other tools, re-run the install (for example `npx create-adda --target codex,gemini,hermes --yes`) to refresh their blocks. The interactive setup also asks for script and tone.
 
 ## Options
 
@@ -77,6 +98,9 @@ Full text: [`src/rules.md`](src/rules.md).
 | `--remove` | Uninstall from the chosen targets |
 | `--print web` | Print only the web prompt, for piping |
 | `--out <path>` | Write the web prompt to a file instead of printing it |
+| `--script latin\|bengali` | Chat script, saved for later runs (default `latin`) |
+| `--tone casual\|formal` | Chat tone, saved for later runs (default `casual`; `formal` uses "apni") |
+| `--prefs` | Show your saved preferences and where they live |
 | `-h`, `--help` / `-v`, `--version` | Usage / version |
 
 Examples:

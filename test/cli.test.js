@@ -241,3 +241,44 @@ test('--remove without --scope removes Claude from every scope', () => {
   assert.equal(exists(join(box.home, '.claude', 'CLAUDE.md')), false);
   assert.equal(claudeLog(box), 'claude plugin list --json\nclaude plugin uninstall adda@adda\n');
 });
+
+test('--script and --tone are saved and applied, and later runs reuse them', () => {
+  const box = sandbox();
+  const first = run(['--target', 'claude', '--scope', 'project', '--script', 'bengali', '--tone', 'formal', '--yes'], box);
+  assert.equal(first.code, 0);
+  assert.deepEqual(JSON.parse(read(join(box.home, '.config', 'adda', 'config.json'))), { script: 'bengali', tone: 'formal' });
+  assert.match(read(join(box.repo, 'CLAUDE.local.md')), /Talk to the developer in Bangla, written in Bengali script/);
+
+  run(['--target', 'codex', '--yes'], box);
+  assert.match(read(join(box.home, '.codex', 'AGENTS.md')), /"apni"/);
+});
+
+test('preference flags without --target only save, and say how to apply them', () => {
+  const box = sandbox();
+  const { code, stdout } = run(['--tone', 'formal'], box);
+
+  assert.equal(code, 0);
+  assert.match(stdout, /tone: formal/);
+  assert.match(stdout, /Re-run with --target/);
+  assert.equal(exists(join(box.repo, 'CLAUDE.local.md')), false);
+});
+
+test('--prefs shows the saved preferences and where they live', () => {
+  const box = sandbox();
+  write(join(box.home, '.config', 'adda', 'custom.md'), '- Keep replies short.\n');
+  const { code, stdout } = run(['--prefs'], box);
+
+  assert.equal(code, 0);
+  assert.match(stdout, /script: latin/);
+  assert.match(stdout, /tone: casual/);
+  assert.match(stdout, /custom\.md/);
+  assert.match(stdout, /Keep replies short/);
+});
+
+test('an unknown --script value is rejected', () => {
+  const box = sandbox();
+  const { code, stderr } = run(['--script', 'klingon', '--target', 'claude', '--yes'], box);
+
+  assert.equal(code, 1);
+  assert.match(stderr, /--script must be one of: latin, bengali/);
+});

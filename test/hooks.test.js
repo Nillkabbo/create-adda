@@ -9,10 +9,11 @@ const hook = (name) => fileURLToPath(new URL(`../hooks/${name}.mjs`, import.meta
 const statePath = (home) => join(home, '.claude', 'adda.json');
 
 // Runs a hook the way Claude Code does: JSON event on stdin, context on stdout.
+// XDG_CONFIG_HOME is pinned inside the sandbox so a developer's real preferences never leak in.
 function runHook(name, event, home) {
   const result = spawnSync(process.execPath, [hook(name)], {
     input: JSON.stringify(event),
-    env: { ...process.env, HOME: home, USERPROFILE: home },
+    env: { ...process.env, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, '.config') },
     encoding: 'utf8',
   });
   return { code: result.status, stdout: result.stdout, stderr: result.stderr };
@@ -90,4 +91,22 @@ test('ordinary prompts, bad input, and unknown arguments produce no output and n
     assert.equal(stdout, '');
   }
   assert.equal(exists(statePath(home)), false);
+});
+
+test('session start applies the personal preferences to the injected rules', () => {
+  const { home } = sandbox();
+  write(join(home, '.config', 'adda', 'config.json'), '{ "script": "bengali" }\n');
+  write(join(home, '.config', 'adda', 'custom.md'), '- Keep replies short.\n');
+  const { stdout } = runHook('session-start', { hook_event_name: 'SessionStart', source: 'startup' }, home);
+
+  assert.match(stdout, /Talk to the developer in Bangla, written in Bengali script/);
+  assert.match(stdout, /- Keep replies short\./);
+});
+
+test('/adda on re-injects the rules with the personal preferences applied', () => {
+  const { home } = sandbox();
+  write(join(home, '.config', 'adda', 'config.json'), '{ "tone": "formal" }\n');
+  const { stdout } = runHook('prompt-submit', prompt('/adda on'), home);
+
+  assert.match(stdout, /"apni"/);
 });

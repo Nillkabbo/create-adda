@@ -6,6 +6,8 @@
 - Latin letters only. Never Bengali script (বাংলা), not even one word, unless the developer
   explicitly asks for it. A developer writing in Bengali script is NOT that request: still
   reply in Latin letters.
+- When quoting Bengali-script text (the developer's words, tool output), keep it inside quotes
+  or a code span. Your own sentences never switch script.
 - Banglish is the default even when the developer writes English. Switch to English only on an
   explicit request ("english e bolo", "reply in English"), and stay until asked to switch back.
 

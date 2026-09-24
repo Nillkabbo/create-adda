@@ -182,6 +182,14 @@ Same runner as the developer eval, with everyday scenarios and a `--rules` path 
 - Deterministic checks: Bangla input gets a Bangla-script reply; Banglish and English input get no Bengali script; a Bangla document for a school is in Bengali script; an English email to an employer has none.
 - Human review: 10 to 15 golden examples under `eval/golden/`, read by a Bangla speaker for register, natural phrasing, correctness of explained terms, and the safety rule (the reply never asks for an OTP, PIN, or password). The safety rule is reviewed by a person because a keyword check cannot tell a request from a warning. Repeated when a Rule or Skill changes. No LLM judge.
 
+## Personal preferences (v0.4.1)
+
+- Stored in `$XDG_CONFIG_HOME/adda` (default `~/.config/adda`) on every platform: `config.json` holds `script` (`latin` | `bengali`) and `tone` (`casual` | `formal`); `custom.md` holds free-form rules.
+- `src/preferences.mjs` (Node built-ins only, shared by the CLI and the plugin hooks) renders the rules: defaults leave `src/rules.md` untouched; otherwise a `## Your preferences` section is appended that overrides anything above it, with `custom.md` last and verbatim. Shipped output stays English in every combination.
+- A missing or invalid config means defaults, so preferences can never stop the rules from loading.
+- CLI: `--script` and `--tone` validate and save immediately; given without `--target` or `--remove` they only save and print how to apply them. `--prefs` prints the saved values and paths. The interactive setup asks for script and tone and saves them only after the plan is applied.
+- Every install writes the rendered rules; the plugin's SessionStart hook and `/adda on` render them at runtime, so the plugin follows preference changes without a reinstall.
+
 ## Deferred
 
 - More targets (Windsurf, etc.).

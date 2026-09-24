@@ -6,6 +6,7 @@ import { parseArgs, styleText } from 'node:util';
 import { TARGETS } from '../src/targets.js';
 import { buildPlan, applyPlan, isPluginInstalled } from '../src/plan.js';
 import { onPath } from '../src/paths.js';
+import { CHOICES, configDir, loadPreferences, savePreferences } from '../src/preferences.mjs';
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const TARGET_IDS = Object.keys(TARGETS);
@@ -23,6 +24,9 @@ Options:
   --remove                Uninstall the rule from the chosen targets
   --print web             Print the web prompt only (pipe-friendly)
   --out <path>            Write the web prompt to a file instead of printing it
+  --script latin|bengali  Chat script (saved; default latin). Shipped output stays English
+  --tone casual|formal    Chat tone (saved; default casual). formal uses "apni"
+  --prefs                 Show your saved preferences and where they live
   -h, --help              Show this help
   -v, --version           Show the version
 `;
@@ -43,6 +47,9 @@ function parse(argv) {
         remove: { type: 'boolean' },
         print: { type: 'string' },
         out: { type: 'string' },
+        script: { type: 'string' },
+        tone: { type: 'string' },
+        prefs: { type: 'boolean' },
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
       },
@@ -110,7 +117,25 @@ async function promptChoices(env, hasClaude, remove) {
       })),
     });
   }
-  return { targets, scopes };
+  if (remove) return { targets, scopes };
+  const saved = loadPreferences(configDir(process.env, env.home));
+  const script = await select({
+    message: 'Chat script?',
+    default: saved.script,
+    choices: [
+      { name: 'Banglish in Latin letters (ami tomake bolchi)', value: 'latin' },
+      { name: 'Bangla script (আমি তোমাকে বলছি)', value: 'bengali' },
+    ],
+  });
+  const tone = await select({
+    message: 'Tone?',
+    default: saved.tone,
+    choices: [
+      { name: 'Casual peer (tumi)', value: 'casual' },
+      { name: 'Formal (apni)', value: 'formal' },
+    ],
+  });
+  return { targets, scopes, preferences: { script, tone } };
 }
 
 // Show paths relative to cwd when inside it, else with ~ for home.
@@ -135,6 +160,16 @@ function printBox(title, content) {
   console.log(`\n${paint('bold', title)}\n${rule}\n${content.trimEnd()}\n${rule}`);
 }
 
+function printPreferences(dir) {
+  const prefs = loadPreferences(dir);
+  console.log(`Preferences (${dir}):`);
+  console.log(`  script: ${prefs.script}`);
+  console.log(`  tone: ${prefs.tone}`);
+  const custom = prefs.custom.trim();
+  console.log(`  custom rules (${join(dir, 'custom.md')}): ${custom ? '' : 'none'}`);
+  if (custom) console.log(custom.replace(/^/gm, '    '));
+}
+
 async function main() {
   const flags = parse(process.argv.slice(2));
   if (flags.help) return void process.stdout.write(USAGE);
@@ -147,6 +182,24 @@ async function main() {
     codexHome: process.env.CODEX_HOME || join(home, '.codex'),
     hermesHome: process.env.HERMES_HOME || join(home, '.hermes'),
   };
+
+  // Personal preferences live in ~/.config/adda and apply to every install and to the plugin.
+  const prefsDir = configDir(process.env, home);
+  const changes = {};
+  for (const key of ['script', 'tone']) {
+    if (flags[key] === undefined) continue;
+    if (!CHOICES[key].includes(flags[key])) {
+      throw new UsageError(`--${key} must be one of: ${CHOICES[key].join(', ')}.`);
+    }
+    changes[key] = flags[key];
+  }
+  if (Object.keys(changes).length) savePreferences(prefsDir, changes);
+  if (flags.prefs || (Object.keys(changes).length && !flags.target && !flags.remove)) {
+    printPreferences(prefsDir);
+    if (!flags.prefs) console.log('\nRe-run with --target to apply them (the Claude Code plugin picks them up on its own).');
+    return;
+  }
+  env.preferences = loadPreferences(prefsDir);
 
   if (flags.print !== undefined) {
     if (flags.print !== 'web') throw new UsageError('--print only supports "web".');
@@ -167,6 +220,8 @@ async function main() {
     console.log(paint('bold', `\ncreate-adda v${pkg.version}`));
     console.log('Adda in Banglish, ship in English.\n');
     choices = await promptChoices(env, hasClaude, flags.remove);
+    // Chosen preferences shape the plan now but are saved only once the plan is applied.
+    if (choices.preferences) env.preferences = { ...env.preferences, ...choices.preferences };
   } else {
     throw new UsageError('No TTY detected: pass --target (and --yes) to run non-interactively.');
   }
@@ -201,6 +256,7 @@ async function main() {
   }
 
   applyPlan(plan);
+  if (choices.preferences) savePreferences(prefsDir, choices.preferences);
   plan.actions
     .filter((action) => action.type === 'print')
     .forEach((action) => printBox(action.title, action.content));

@@ -24,3 +24,8 @@ test('rules keep at least three Banglish examples', () => {
 test('rules keep the anchor phrase every target and test relies on', () => {
   assert.match(rules, /Talk to the developer in Banglish/);
 });
+
+test('rules keep quoted Bengali script apart from the model\'s own sentences', () => {
+  assert.match(rules, /quot[a-z]* Bengali-script text[\s\S]*?(quotes|code span)/i);
+  assert.match(rules, /own sentences never switch script/i);
+});

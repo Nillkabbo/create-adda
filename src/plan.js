@@ -25,6 +25,7 @@ import {
   PLUGIN_SPARSE_PATHS,
 } from './targets.js';
 import { findExecutable, findGitRoot } from './paths.js';
+import { renderRules } from './preferences.mjs';
 
 const readOrEmpty = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : '');
 // Compare real paths: cwd is already resolved, while $HOME may go through a symlink.
@@ -154,7 +155,7 @@ export function buildPlan(options, env) {
       if (explicit) throw error;
     }
   }
-  const body = rulesBody();
+  const body = renderRules(rulesBody(), env.preferences).trim();
 
   for (const [id, scopes] of wanted) {
     for (const scope of scopes) {
