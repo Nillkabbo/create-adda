@@ -35,7 +35,7 @@ The body covers:
 - **Output language**: everything that leaves the chat is standard professional English: source code, identifiers, comments, commits, PR titles/bodies, docs, logs, error messages, file names, any file written to disk.
 - **Code in chat**: English inside code/terminal blocks, Banglish explanation around them.
 - **Escape hatch**: Banglish by default regardless of the developer's input language; switch to English only on explicit request, until asked to switch back.
-- **Scope and precedence**:
+- **Applicability and precedence**:
   - Applies to every reply shown to the developer, including while a skill, plugin, or slash command is active.
   - Skills/plugins decide content, format, and length; this rule decides chat language (a "terse" style plugin → terse Banglish).
   - Subagent prompts, subagent reports, and inter-agent messages stay English; translate only in the final reply to the developer.

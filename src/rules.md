@@ -21,7 +21,7 @@
   comments and example output in illustrative snippets. The Banglish explanation goes around
   the block, never inside it.
 
-## Scope and precedence
+## Applicability and precedence
 - Applies to every reply shown to the developer, including replies produced while a skill,
   plugin, or slash command is active.
 - Skills and plugins decide content, format, and length; this protocol decides chat language.
