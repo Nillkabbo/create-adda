@@ -21,6 +21,7 @@ import {
   TARGETS,
   rulesBody,
   PLUGIN_ID,
+  MARKETPLACE_NAME,
   DEFAULT_MARKETPLACE,
   PLUGIN_SPARSE_PATHS,
 } from './targets.js';
@@ -51,14 +52,29 @@ function resolveProjectDir(env) {
   return { dir, gitRoot };
 }
 
-function pluginInstallActions(options) {
+// Whether an already added marketplace (an entry from `claude plugin marketplace list --json`)
+// comes from `source`.
+function sameMarketplaceSource(existing, source, isLocal, cwd) {
+  if (isLocal) return existing.source === 'directory' && samePath(existing.path, resolve(cwd, source));
+  return existing.source === 'github' && existing.repo?.toLowerCase() === source.toLowerCase();
+}
+
+function pluginInstallActions(options, env) {
   const source = options.marketplace ?? DEFAULT_MARKETPLACE;
   // `claude` rejects --sparse for directory sources; it only applies to git checkouts.
   const isLocal = /^([./~]|[A-Za-z]:\\)/.test(source);
   const sparse = isLocal ? [] : ['--sparse', ...PLUGIN_SPARSE_PATHS];
+  // Claude Code refuses to add a marketplace again when its declared source differs in any field
+  // (older versions of this tool declared more sparse paths), so a known one is only updated.
+  // One from another source is still added, and claude's error names the clash.
+  const known = env.marketplace && sameMarketplaceSource(env.marketplace, source, isLocal, env.cwd);
   return [
-    { type: 'exec', command: 'claude', args: ['plugin', 'marketplace', 'add', source, ...sparse] },
+    known
+      ? { type: 'exec', command: 'claude', args: ['plugin', 'marketplace', 'update', MARKETPLACE_NAME] }
+      : { type: 'exec', command: 'claude', args: ['plugin', 'marketplace', 'add', source, ...sparse] },
     { type: 'exec', command: 'claude', args: ['plugin', 'install', PLUGIN_ID, '--scope', 'user'] },
+    // `install` leaves an installed plugin on its old version; `update` moves it to the new tag.
+    ...(known ? [{ type: 'exec', command: 'claude', args: ['plugin', 'update', PLUGIN_ID] }] : []),
   ];
 }
 
@@ -82,7 +98,7 @@ function duplicateBlockCleanup(env) {
 
 function installActions(spec, path, body, options, env) {
   // Cleanup runs after the commands, so a failed install leaves the existing rules in place.
-  if (spec.kind === 'plugin') return [...pluginInstallActions(options), ...duplicateBlockCleanup(env)];
+  if (spec.kind === 'plugin') return [...pluginInstallActions(options, env), ...duplicateBlockCleanup(env)];
   if (spec.kind === 'print' && spec.writable && options.out) {
     return [{ type: 'write', path: resolve(env.cwd, options.out), content: spec.render(body) }];
   }
@@ -95,6 +111,17 @@ function installActions(spec, path, body, options, env) {
 }
 
 const uninstallPluginAction = () => ({ type: 'exec', command: 'claude', args: ['plugin', 'uninstall', PLUGIN_ID] });
+
+// Asks the claude CLI for the adda marketplace entry; null when it is absent or cannot be determined.
+export function findMarketplace(run = runCommand) {
+  const { code, stdout } = run('claude', ['plugin', 'marketplace', 'list', '--json']);
+  if (code !== 0) return null;
+  try {
+    return JSON.parse(stdout).find((marketplace) => marketplace.name === MARKETPLACE_NAME) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 // Asks the claude CLI whether the plugin is installed; false when that cannot be determined.
 export function isPluginInstalled(run = runCommand) {

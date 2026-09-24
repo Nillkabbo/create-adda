@@ -50,7 +50,7 @@ The body covers:
 
 - **Marker block upsert**: if the block exists, replace its contents; otherwise append it after the existing text, which is kept byte for byte, separated by a blank line; if the file is missing, create it (and parent directories). The start marker carries flags that let `--remove` undo the install exactly: `created-file` (this tool created the file) and `no-eol` (the file had no trailing newline before the block was appended).
 - **Owned files** (`adda.mdc`, `adda.instructions.md`): written whole; `--remove` also prunes the folders they leave empty.
-- **Re-running** the CLI is the update path: blocks and owned files are refreshed from the current `rules.md`.
+- **Re-running** the CLI is the update path: blocks and owned files are refreshed from the current `rules.md`, and the plugin moves to the latest release tag.
 - **`--remove`**: strip marker blocks and exactly the separator the install added, so the file is restored byte for byte (a file this tool created is deleted instead); delete owned files; remove the gitignore block lines. Blocks written before the `no-eol` flag existed are removed as before.
 - **Project scope location**: walk up from `cwd` to the nearest `.git` root and write there. No git root → write to `cwd` and warn that `.gitignore` was skipped. Refuse project scope when the resolved directory is `$HOME`; suggest `--scope global`.
 - **`.gitignore`**: only inside a git repo. Add a `# adda` section containing only the lines for chosen project-scope targets, never duplicating existing lines. Create `.gitignore` if missing. `--remove` deletes those lines and the section header.
@@ -126,7 +126,7 @@ The repo is also a Claude Code marketplace (`adda`) whose plugin (`adda`) lives 
 ### Installer integration
 
 - Claude target gains a `plugin` scope, the default when `claude` is on `PATH`; `--scope plugin` on the command line.
-- Install plans `exec` actions: `claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin`, then `claude plugin install adda@adda --scope user`. `ADDA_MARKETPLACE` overrides the source; a local directory source is added without `--sparse`, which only git sources support.
+- Install plans `exec` actions: `claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin`, then `claude plugin install adda@adda --scope user`. `ADDA_MARKETPLACE` overrides the source; a local directory source is added without `--sparse`, which only git sources support. When `claude plugin marketplace list --json` already shows an `adda` marketplace from the same source, the plan runs `claude plugin marketplace update adda`, `install`, then `claude plugin update adda@adda` instead: Claude Code refuses to re-add a marketplace whose declared source differs in any field (versions before 0.2.1 declared more sparse paths), and `install` leaves an installed plugin on its old version. An `adda` marketplace from another source is still added, so claude's error names the clash.
 - Install then strips any Claude marker block from `<project>/CLAUDE.local.md` and `~/.claude/CLAUDE.md` (and the matching `.gitignore` line) to avoid duplicate rules. The cleanup runs after the commands, so a failed install leaves the existing rules in place.
 - The reverse holds too: moving Claude to a block scope while the plugin is installed plans `claude plugin uninstall adda@adda`. The rules never load twice.
 - Remove plans `claude plugin uninstall adda@adda`; the marketplace entry stays.

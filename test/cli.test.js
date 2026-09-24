@@ -8,8 +8,9 @@ import { sandbox, read, exists, write } from './helpers.js';
 
 const CLI = fileURLToPath(new URL('../bin/cli.js', import.meta.url));
 
-// A stand-in `claude` that logs its arguments. FAKE_CLAUDE_EXIT makes it fail, and
-// FAKE_CLAUDE_PLUGINS is what `claude plugin list --json` prints. On Windows it is reached
+// A stand-in `claude` that logs its arguments. FAKE_CLAUDE_EXIT makes it fail,
+// FAKE_CLAUDE_PLUGINS is what `claude plugin list --json` prints, and FAKE_CLAUDE_MARKETPLACES
+// is what `claude plugin marketplace list --json` prints. On Windows it is reached
 // through a .cmd shim, like the real npm-installed claude.
 function fakeClaude(box) {
   const bin = join(box.root, 'bin');
@@ -19,6 +20,7 @@ function fakeClaude(box) {
 const args = process.argv.slice(2).join(' ');
 appendFileSync(process.env.FAKE_CLAUDE_LOG, 'claude ' + args + '\\n');
 if (args === 'plugin list --json') process.stdout.write(process.env.FAKE_CLAUDE_PLUGINS ?? '[]');
+if (args === 'plugin marketplace list --json') process.stdout.write(process.env.FAKE_CLAUDE_MARKETPLACES ?? '[]');
 if (process.env.FAKE_CLAUDE_EXIT) process.stderr.write('boom');
 process.exit(Number(process.env.FAKE_CLAUDE_EXIT ?? 0));
 `,
@@ -177,12 +179,30 @@ test('claude defaults to the plugin when the claude CLI is on PATH', () => {
   assert.equal(code, 0);
   assert.equal(
     claudeLog(box),
-    'claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin\n' +
+    'claude plugin marketplace list --json\n' +
+      'claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin\n' +
       'claude plugin install adda@adda --scope user\n',
   );
   assert.match(stdout, /run\s+claude plugin install adda@adda/);
   assert.match(stdout, /Restart Claude Code/);
   assert.equal(exists(join(box.repo, 'CLAUDE.local.md')), false);
+});
+
+test('re-running the plugin install updates the marketplace an older version added', () => {
+  const box = sandbox();
+  const { code } = run(['--target', 'claude', '--yes'], box, {
+    withClaude: true,
+    env: { FAKE_CLAUDE_MARKETPLACES: JSON.stringify([{ name: 'adda', source: 'github', repo: 'Nillkabbo/create-adda' }]) },
+  });
+
+  assert.equal(code, 0);
+  assert.equal(
+    claudeLog(box),
+    'claude plugin marketplace list --json\n' +
+      'claude plugin marketplace update adda\n' +
+      'claude plugin install adda@adda --scope user\n' +
+      'claude plugin update adda@adda\n',
+  );
 });
 
 test('claude falls back to project scope when the claude CLI is missing', () => {
@@ -216,7 +236,7 @@ test('ADDA_MARKETPLACE points the install at another marketplace source', () => 
     env: { ADDA_MARKETPLACE: '/tmp/local-checkout' },
   });
 
-  assert.match(claudeLog(box), /^claude plugin marketplace add \/tmp\/local-checkout\n/);
+  assert.match(claudeLog(box), /^claude plugin marketplace add \/tmp\/local-checkout\n/m);
 });
 
 test('a failing claude command exits 1 and tells the user to run it by hand', () => {

@@ -15,6 +15,7 @@ const copilotInstructions = (body) =>
   `---\nname: Adda\ndescription: Banglish in chat, English in everything shipped\napplyTo: "**"\n---\n\n${body}\n`;
 
 export const PLUGIN_ID = 'adda@adda';
+export const MARKETPLACE_NAME = 'adda';
 export const DEFAULT_MARKETPLACE = 'Nillkabbo/create-adda';
 // The marketplace checkout only needs its catalog; the plugin itself comes from a release tag.
 export const PLUGIN_SPARSE_PATHS = ['.claude-plugin'];

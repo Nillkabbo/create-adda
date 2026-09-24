@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { parseArgs, styleText } from 'node:util';
 import { TARGETS } from '../src/targets.js';
-import { buildPlan, applyPlan, isPluginInstalled } from '../src/plan.js';
+import { buildPlan, applyPlan, findMarketplace, isPluginInstalled } from '../src/plan.js';
 import { onPath } from '../src/paths.js';
 import { CHOICES, configDir, loadPreferences, savePreferences } from '../src/preferences.mjs';
 
@@ -232,6 +232,11 @@ async function main() {
   // Only ask claude when the answer can change the plan: Claude at a non-plugin scope.
   const pluginInstalled =
     hasClaude && choices.targets.includes('claude') && choices.scopes.claude !== 'plugin' && isPluginInstalled();
+  // A plugin install re-run must update the marketplace rather than add it again.
+  const marketplace =
+    hasClaude && !flags.remove && choices.targets.includes('claude') && choices.scopes.claude === 'plugin'
+      ? findMarketplace()
+      : null;
   const plan = buildPlan(
     {
       ...choices,
@@ -239,7 +244,7 @@ async function main() {
       out: flags.out,
       marketplace: process.env.ADDA_MARKETPLACE || undefined,
     },
-    { ...env, pluginInstalled },
+    { ...env, pluginInstalled, marketplace },
   );
   if (!plan.actions.length) {
     plan.warnings.forEach((warning) => console.log(paint('yellow', `! ${warning}`)));

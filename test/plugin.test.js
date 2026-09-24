@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
-import { buildPlan, applyPlan } from '../src/plan.js';
+import { buildPlan, applyPlan, findMarketplace } from '../src/plan.js';
 import { sandbox, read, exists, write } from './helpers.js';
 
 // Records commands instead of running them; `fail` makes a matching command exit non-zero.
@@ -25,6 +25,55 @@ test('plugin scope adds the marketplace and installs the plugin for the user', (
     'claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin',
     'claude plugin install adda@adda --scope user',
   ]);
+});
+
+test('a marketplace already added from the same repo is updated, and so is the plugin', () => {
+  // Claude Code refuses `marketplace add` when the declared source differs, e.g. in sparse paths
+  // written by an older create-adda, so re-running the install must not add it again.
+  const { env } = sandbox();
+  const runner = fakeRunner();
+  const marketplace = { name: 'adda', source: 'github', repo: 'Nillkabbo/create-adda' };
+  applyPlan(buildPlan(PLUGIN, { ...env, marketplace }), { run: runner.run });
+
+  assert.deepEqual(runner.calls, [
+    'claude plugin marketplace update adda',
+    'claude plugin install adda@adda --scope user',
+    // `install` is a no-op for an installed plugin; `update` moves it to the new release tag.
+    'claude plugin update adda@adda',
+  ]);
+});
+
+test('a local marketplace already added from the same directory is updated', () => {
+  const { env } = sandbox();
+  const runner = fakeRunner();
+  const marketplace = { name: 'adda', source: 'directory', path: '/work/create-adda' };
+  applyPlan(buildPlan({ ...PLUGIN, marketplace: '/work/create-adda' }, { ...env, marketplace }), { run: runner.run });
+
+  assert.equal(runner.calls[0], 'claude plugin marketplace update adda');
+});
+
+test('an adda marketplace from another source is added anyway, so claude reports the clash', () => {
+  const { env } = sandbox();
+  const runner = fakeRunner();
+  const marketplace = { name: 'adda', source: 'directory', path: '/work/create-adda' };
+  applyPlan(buildPlan(PLUGIN, { ...env, marketplace }), { run: runner.run });
+
+  assert.equal(runner.calls[0], 'claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin');
+});
+
+test('findMarketplace returns the adda entry, or null when claude cannot tell', () => {
+  const list = JSON.stringify([
+    { name: 'caveman', source: 'github', repo: 'JuliusBrussee/caveman' },
+    { name: 'adda', source: 'github', repo: 'Nillkabbo/create-adda' },
+  ]);
+  assert.deepEqual(findMarketplace(() => ({ code: 0, stdout: list })), {
+    name: 'adda',
+    source: 'github',
+    repo: 'Nillkabbo/create-adda',
+  });
+  assert.equal(findMarketplace(() => ({ code: 0, stdout: '[]' })), null);
+  assert.equal(findMarketplace(() => ({ code: 1, stdout: '' })), null);
+  assert.equal(findMarketplace(() => ({ code: 0, stdout: 'not json' })), null);
 });
 
 test('a failing plugin command stops the run and names the command to retry by hand', () => {
