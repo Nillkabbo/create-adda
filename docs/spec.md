@@ -121,6 +121,12 @@ The repo is also a Claude Code marketplace (`adda`) whose plugin (`adda`) lives 
 - `applyPlan` takes an injected command runner. A failing `exec` stops the run and prints the command to run by hand; completed file changes are not rolled back.
 - After a plugin install, print a hint to restart Claude Code or run `/clear`.
 
+### Releases
+
+- `package.json` is the single version source. `scripts/sync-version.mjs` (run by the npm `version` lifecycle script) writes it into `.claude-plugin/plugin.json` and points the marketplace's plugin source at `{ source: "github", repo: "Nillkabbo/create-adda", ref: "v<version>" }`.
+- The marketplace checkout is sparse (`.claude-plugin` only); the plugin code comes from the release tag, so pushes to `main` never reach plugin users.
+- `test/release.test.js` fails when the manifests drift from `package.json`; CI also checks that a pushed `v*` tag matches it.
+
 ## Deferred
 
 - More targets (Windsurf, etc.).

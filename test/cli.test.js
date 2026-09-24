@@ -136,7 +136,7 @@ test('claude defaults to the plugin when the claude CLI is on PATH', () => {
   assert.equal(code, 0);
   assert.equal(
     claudeLog(box),
-    'claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin src hooks commands\n' +
+    'claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin\n' +
       'claude plugin install adda@adda --scope user\n',
   );
   assert.match(stdout, /run\s+claude plugin install adda@adda/);

@@ -94,6 +94,23 @@ Choosing a Claude Code scope moves the rule there: installing the plugin removes
 
 Without a terminal (CI, scripts), `--target` and `--yes` are required.
 
+## Development
+
+```bash
+npm test                   # node:test suite (also runs in CI on Linux, macOS, Windows)
+claude --plugin-dir .      # try the Claude Code plugin from this checkout
+```
+
+### Releasing
+
+`package.json` holds the only version number. Plugin users install the tagged release, never `main`.
+
+```bash
+npm version patch          # or minor/major: syncs the plugin manifests, commits, tags v<version>
+git push --follow-tags     # CI checks the tag matches package.json
+npm publish
+```
+
 ## Requirements
 
 Node.js 20.17 or newer, on macOS, Linux, or Windows.

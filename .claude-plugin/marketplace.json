@@ -10,7 +10,11 @@
     {
       "name": "adda",
       "description": "Talk to Claude in Banglish while code, commits, and docs stay in English.",
-      "source": "./",
+      "source": {
+        "source": "github",
+        "repo": "Nillkabbo/create-adda",
+        "ref": "v0.2.0"
+      },
       "category": "productivity"
     }
   ]

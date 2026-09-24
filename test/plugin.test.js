@@ -22,7 +22,7 @@ test('plugin scope adds the marketplace and installs the plugin for the user', (
   applyPlan(buildPlan(PLUGIN, env), { run: runner.run });
 
   assert.deepEqual(runner.calls, [
-    'claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin src hooks commands',
+    'claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin',
     'claude plugin install adda@adda --scope user',
   ]);
 });

@@ -9,7 +9,13 @@
   "homepage": "https://github.com/Nillkabbo/create-adda",
   "repository": "https://github.com/Nillkabbo/create-adda",
   "license": "MIT",
-  "keywords": ["adda", "banglish", "bengali", "language", "bilingual"],
+  "keywords": [
+    "adda",
+    "banglish",
+    "bengali",
+    "language",
+    "bilingual"
+  ],
   "hooks": {
     "SessionStart": [
       {

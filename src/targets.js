@@ -12,8 +12,8 @@ const cursorMdc = (body) =>
 
 export const PLUGIN_ID = 'adda@adda';
 export const DEFAULT_MARKETPLACE = 'Nillkabbo/create-adda';
-// Only what the hooks need; tests and docs stay out of the plugin checkout.
-export const PLUGIN_SPARSE_PATHS = ['.claude-plugin', 'src', 'hooks', 'commands'];
+// The marketplace checkout only needs its catalog; the plugin itself comes from a release tag.
+export const PLUGIN_SPARSE_PATHS = ['.claude-plugin'];
 
 // Each scope is one of:
 //   block: marker block upserted into a shared file
