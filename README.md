@@ -22,11 +22,9 @@ The interactive setup asks which tools to configure, where the rule should live,
 
 > **Cursor (limited):** the rule installs and Cursor loads it, but Cursor's Auto model (the only one on free plans) didn't follow it in our tests and kept replying in English. Named models on paid plans are untested.
 >
-> **Gemini CLI (untested):** the rule installs into `~/.gemini/GEMINI.md`, but we haven't yet checked that Gemini CLI follows it in a live session.
->
 > **Web AI (untested):** the prompt prints correctly, but we haven't checked how ChatGPT, Claude.ai, or Gemini follow it once pasted into custom instructions.
 >
-> Claude Code and Codex CLI are tested live: they chat in Banglish while files and commits stay in English.
+> Claude Code, Codex CLI, and Gemini CLI are tested live: they chat in Banglish while files and commits stay in English.
 
 The rule is personal. Project files are gitignored and never pushed onto teammates.
 
