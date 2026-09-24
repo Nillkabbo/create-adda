@@ -1,6 +1,8 @@
 import { chatVerdict, hasBengaliScript, scriptShare } from './detect.mjs';
 
-const NOTICE = 'Your account has been placed under lien for BDT 50,000 pending verification.';
+const NOTICE = 'Your loan repayment of BDT 12,000 is overdue by 15 days. A late fee of BDT 500 will be applied if it is unpaid by 30 September.';
+
+const keepsFacts = (text) => /12,?000|১২,?০০০/.test(text) && /30 September|৩০ সেপ্টেম্বর|30 সেপ্টেম্বর/.test(text);
 
 const banglaScript = (min) => (text) => {
   const share = scriptShare(text);
@@ -19,23 +21,23 @@ const banglish = (markers) => (text) => {
 export const EVERYDAY_SCENARIOS = [
   {
     id: 'bangla-in',
-    prompt: 'আমার ব্যাংকের কার্ড হারিয়ে গেছে, কী করব?',
+    prompt: 'আমার ফোনের চার্জ খুব তাড়াতাড়ি শেষ হয়ে যাচ্ছে, কী করব?',
     check: (text) => banglaScript(0.7)(text),
   },
   {
     id: 'banglish-in',
-    prompt: 'amar bill ta beshi keno ashse?',
+    prompt: 'amar gas er bill ta ei mash e onek beshi ashse, keno?',
     check: (text, markers) => banglish(markers)(text),
   },
   {
     id: 'english-in',
-    prompt: 'How do I ask my landlord to fix the tap?',
+    prompt: 'Why is my laptop fan so loud all the time?',
     check: (text, markers) => banglish(markers)(text),
   },
   {
     id: 'school-application',
     skills: ['write'],
-    prompt: 'স্কুলে ছেলের জন্য ছুটির আবেদন লিখে দিন, জ্বর হয়েছে।',
+    prompt: 'এলাকার চেয়ারম্যানের কাছে রাস্তার বাতি ঠিক করার জন্য একটা আবেদন লিখে দিন।',
     check: (text) => banglaScript(0.7)(text),
   },
   {
@@ -50,7 +52,7 @@ export const EVERYDAY_SCENARIOS = [
   {
     id: 'asks-recipient-language',
     skills: ['write'],
-    prompt: 'Boss ke ekta email likhte hobe, kal ami office ashte parbo na.',
+    prompt: 'Amar HR ke ekta email likhte hobe, porshu ami office ashte parbo na.',
     check: (text) => {
       const ok = text.includes('?') && /bangla/i.test(text) && /english/i.test(text);
       return { ok, detail: 'expected one question asking Bangla or English' };
@@ -62,8 +64,8 @@ export const EVERYDAY_SCENARIOS = [
     prompt: `ei notice ta bujhiye dao: "${NOTICE}"`,
     check: (text, markers) => {
       const verdict = banglish(markers)(text);
-      const keepsAmount = /50,?000|৫০,?০০০/.test(text);
-      return { ok: verdict.ok && keepsAmount, detail: keepsAmount ? verdict.detail : 'amount 50,000 missing' };
+      const kept = keepsFacts(text);
+      return { ok: verdict.ok && kept, detail: kept ? verdict.detail : 'amount or date from the notice missing' };
     },
   },
   {
@@ -72,8 +74,8 @@ export const EVERYDAY_SCENARIOS = [
     prompt: `এই নোটিশটা বুঝিয়ে দিন: "${NOTICE}"`,
     check: (text) => {
       const share = banglaScript(0.6)(text);
-      const keepsAmount = /50,?000|৫০,?০০০/.test(text);
-      return { ok: share.ok && keepsAmount, detail: keepsAmount ? share.detail : 'amount 50,000 missing' };
+      const kept = keepsFacts(text);
+      return { ok: share.ok && kept, detail: kept ? share.detail : 'amount or date from the notice missing' };
     },
   },
 ];

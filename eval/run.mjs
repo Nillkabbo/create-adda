@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // Live eval: runs real models through `claude -p` and checks the language of what they produce.
 // Not part of `npm test` (costs tokens, non-deterministic). Run with `npm run eval`.
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { chatVerdict, hasBengaliScript, leakVerdict } from './detect.mjs';
-import { parseStream } from './stream.mjs';
+import { claude } from './claude.mjs';
 import { DRIFT_CHECKPOINTS, DRIFT_TURNS, SCENARIOS } from './scenarios.mjs';
 import { EVERYDAY_SCENARIOS } from './scenarios-everyday.mjs';
 
@@ -88,29 +88,6 @@ const rulesText = (variant, scenario) =>
     ? variant.text
     : [variant.text.base, ...(scenario.skills ?? []).map((name) => variant.text.skills[name])].join('\n\n');
 
-function claude({ model, rules, prompt, cwd, tools, session }) {
-  const args = [
-    '-p',
-    '--safe-mode',
-    '--output-format', 'stream-json',
-    '--verbose',
-    '--model', model,
-    '--append-system-prompt', rules,
-    '--permission-mode', 'bypassPermissions',
-    ...(tools === undefined ? [] : ['--tools', tools]),
-    ...(session?.resume ? ['--resume', session.id] : session ? ['--session-id', session.id] : ['--no-session-persistence']),
-  ];
-  const result = spawnSync('claude', args, {
-    cwd,
-    input: prompt,
-    encoding: 'utf8',
-    timeout: 240_000,
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  if (result.error) return { error: result.error.message };
-  return parseStream(result.stdout ?? '');
-}
-
 function judge(kind, text) {
   if (text === null) return { status: 'na', detail: 'artifact not produced' };
   const verdict = kind === 'chat' ? chatVerdict(text, markers) : leakVerdict(text, markers);
@@ -129,7 +106,7 @@ function runScenario(scenario, model, rules) {
       const parsed = claude({ model, rules, prompt: scenario.prompt, cwd: dir, tools: '' });
       if (parsed.error || parsed.isError) return { status: 'error', detail: parsed.error ?? 'claude reported an error' };
       const verdict = scenario.check(parsed.chat, markers);
-      return { status: verdict.ok ? 'pass' : 'fail', detail: verdict.detail };
+      return { status: verdict.ok ? 'pass' : 'fail', detail: verdict.detail, reply: parsed.chat };
     }
     scenario.setup?.(dir);
     const parsed = claude({ model, rules, prompt: scenario.prompt, cwd: dir, tools: scenario.tools });

@@ -2,7 +2,7 @@
 
 Use this when the user wants a letter, application, email, or message written for someone.
 
-- Ask at most two questions, only for what you cannot infer: who it is for, and why.
+- If the Recipient's language is not clear, ask which language first (Bangla or English). Ask why only when the answer would change the text. Never ask more than two questions.
 - Write in the Recipient's language and tone. An application to a principal or an office is
   formal. A message to a customer or a friend is short and friendly.
 - Use only the facts the user gave. Leave a [placeholder] for any missing name, date, or amount.
