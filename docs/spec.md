@@ -139,3 +139,14 @@ The repo is also a Claude Code marketplace (`adda`) whose plugin (`adda`) lives 
 ## Deferred
 
 - More targets (Windsurf, etc.).
+
+## Evaluation
+
+`npm test` covers the code. Whether models actually follow the rule is measured separately by a live eval, `npm run eval`, which runs real models through `claude -p` (costs tokens, non-deterministic, never part of CI).
+
+- Each run uses `--safe-mode` with the rule passed through `--append-system-prompt`, so the developer's own plugins, hooks, and `CLAUDE.md` cannot load the rule a second time.
+- Scenarios (`eval/scenarios.mjs`): commit message, code comment, subagent prompt, file on disk (must be English), chat control, and Bengali-script input (chat must be Banglish in Latin letters). Every scenario also fails on Bengali script anywhere in the chat.
+- Detection is deterministic: a Bengali-script regex plus whole-word marker lists in `test/fixtures/banglish-markers.json`. Edit the lists when a false positive shows up.
+- `--rules <path|git:ref>` (repeatable) compares rule variants, `--model` and `--runs` set models and repetitions, `--drift` runs an 8-turn session and checks chat at turns 1, 4, and 8.
+- A rule that is missing from the prompt fails the chat scenarios, so a pass means the rule was followed, not that it was ignored.
+- Rule wording changes ship only when the eval shows no regression. Offline, `test/rules-lint.test.js` guards the word budget, Bengali-script use, and the example count.
