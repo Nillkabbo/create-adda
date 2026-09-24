@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { chatVerdict, hasBengaliScript, leakVerdict } from './detect.mjs';
 import { claude } from './claude.mjs';
+import { unverified } from './verdict.mjs';
 import { DRIFT_CHECKPOINTS, DRIFT_TURNS, SCENARIOS } from './scenarios.mjs';
 import { EVERYDAY_SCENARIOS } from './scenarios-everyday.mjs';
 
@@ -190,3 +191,10 @@ mkdirSync(outDir, { recursive: true });
 const file = new URL(`${flags.drift ? 'drift' : everyday ? 'everyday' : 'leak'}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`, outDir);
 writeFileSync(file, `${JSON.stringify(results, null, 2)}\n`);
 console.log(`\nSaved ${file.pathname}`);
+
+// Exits non-zero unless every scenario passed on most runs, so the release gate can stop.
+const problems = unverified(results);
+if (problems.length) {
+  console.log(`\nNot verified (a scenario must pass on most runs):\n${problems.map((p) => `  ${p}`).join('\n')}`);
+  process.exitCode = 1;
+}

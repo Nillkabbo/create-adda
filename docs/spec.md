@@ -148,7 +148,7 @@ The repo is also a Claude Code marketplace (`adda`) whose plugin (`adda`) lives 
 - Detection is deterministic: a Bengali-script regex plus whole-word marker lists in `test/fixtures/banglish-markers.json`. Edit the lists when a false positive shows up.
 - `--rules <path|git:ref>` (repeatable) compares rule variants, `--model` and `--runs` set models and repetitions, `--drift` runs an 8-turn session and checks chat at turns 1, 4, and 8.
 - A rule that is missing from the prompt fails the chat scenarios, so a pass means the rule was followed, not that it was ignored.
-- Rule wording changes ship only when the eval shows no regression. Offline, `test/rules-lint.test.js` guards the word budget, Bengali-script use, and the example count.
+- Rule wording changes ship only when the eval shows no regression. `npm version` enforces this through `scripts/eval-gate.mjs` (`preversion`): when `src/rules.md` or `src/profiles/everyday/` changed since the last `v*` tag, it runs that suite on haiku with 3 runs, and `eval/run.mjs` exits non-zero unless every scenario passed on most of its runs and none errored (`eval/verdict.mjs`). Majority, not unanimity, because haiku sometimes misses the Rule on a short reply. `ADDA_SKIP_EVAL=1` skips the gate. Offline, `test/rules-lint.test.js` guards the word budget, Bengali-script use, and the example count.
 
 ## Everyday profile
 
