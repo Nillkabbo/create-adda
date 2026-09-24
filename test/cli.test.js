@@ -37,7 +37,10 @@ function run(args, box, { withClaude = false, env = {} } = {}) {
   const result = spawnSync(process.execPath, [CLI, ...args], {
     cwd: box.cwd,
     env: {
-      ...(process.env.SystemRoot && { SystemRoot: process.env.SystemRoot }),
+      // Windows needs these to run the .cmd shim through cmd.exe, as it would on a real machine.
+      ...Object.fromEntries(
+        ['SystemRoot', 'ComSpec', 'PATHEXT'].filter((key) => process.env[key]).map((key) => [key, process.env[key]]),
+      ),
       HOME: box.home,
       USERPROFILE: box.home,
       CODEX_HOME: join(box.home, '.codex'),

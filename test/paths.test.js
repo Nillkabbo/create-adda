@@ -5,7 +5,10 @@ import { join } from 'node:path';
 import { findExecutable } from '../src/paths.js';
 import { sandbox, write } from './helpers.js';
 
-test('finds an executable on a POSIX PATH', () => {
+// POSIX PATH semantics (":" separators, execute bits) only exist on a POSIX host.
+const posixOnly = { skip: process.platform === 'win32' && 'POSIX-only' };
+
+test('finds an executable on a POSIX PATH', posixOnly, () => {
   const { root } = sandbox();
   write(join(root, 'bin', 'claude'), '#!/bin/sh\n');
   chmodSync(join(root, 'bin', 'claude'), 0o755);
@@ -16,7 +19,7 @@ test('finds an executable on a POSIX PATH', () => {
   );
 });
 
-test('ignores a non-executable file on POSIX', () => {
+test('ignores a non-executable file on POSIX', posixOnly, () => {
   const { root } = sandbox();
   write(join(root, 'bin', 'claude'), 'not a program\n');
   chmodSync(join(root, 'bin', 'claude'), 0o644);
