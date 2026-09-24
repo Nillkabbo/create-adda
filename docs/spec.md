@@ -103,7 +103,24 @@ No TTY and no `--target` → exit with a usage error (code 1) instead of hanging
 - `npm pack --dry-run` ships only `bin/`, `src/`, `README.md`, `LICENSE`, `package.json`.
 - Publishing is done manually by the author.
 
-## Deferred (v2)
+## Claude Code plugin (v0.2.0)
 
-- Claude Code plugin with a SessionStart hook and `/banglish on|off` toggle, if the CLAUDE.md block proves too weak.
+The repo is also a Claude Code marketplace (`banglish`) whose plugin (`banglish`) lives at the repo root (`source: "./"`). The plugin hooks read `src/rules.md`, so the npm tool and the plugin share one rule source.
+
+- `.claude-plugin/marketplace.json`, `.claude-plugin/plugin.json`.
+- `hooks/session-start.mjs` (SessionStart: startup, resume, clear, compact): when enabled, prints the rules as context; when disabled, prints nothing.
+- `hooks/prompt-submit.mjs` (UserPromptSubmit): handles `/banglish on|off|status`, persists `~/.claude/banglish-agent.json` (`{ "enabled": boolean }`, missing file = enabled), and injects immediate context: `on` re-injects the rules, `off` switches the session to English, `status` reports the state. Other prompts produce no output.
+- `commands/banglish.md`: `/banglish` autocomplete; the model confirms the new state in one line.
+- Hooks are `.mjs` and use only Node built-ins: the plugin checkout is sparse (no `package.json`, no `node_modules`).
+
+### Installer integration
+
+- Claude target gains a `plugin` scope, the default when `claude` is on `PATH`; `--scope plugin` on the command line.
+- Install plans `exec` actions: `claude plugin marketplace add Nillkabbo/create-banglish-agent --sparse .claude-plugin src hooks commands`, then `claude plugin install banglish@banglish --scope user`. It also strips any Claude marker block from `<project>/CLAUDE.local.md` and `~/.claude/CLAUDE.md` to avoid duplicate rules.
+- Remove plans `claude plugin uninstall banglish@banglish`; the marketplace entry stays.
+- `applyPlan` takes an injected command runner. A failing `exec` stops the run and prints the command to run by hand; completed file changes are not rolled back.
+- After a plugin install, print a hint to restart Claude Code or run `/clear`.
+
+## Deferred
+
 - More targets (Windsurf, etc.).

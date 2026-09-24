@@ -10,16 +10,23 @@ export function rulesBody() {
 const cursorMdc = (body) =>
   `---\ndescription: Banglish in chat, English in everything shipped\nalwaysApply: true\n---\n\n${body}\n`;
 
+export const PLUGIN_ID = 'banglish@banglish';
+export const DEFAULT_MARKETPLACE = 'Nillkabbo/create-banglish-agent';
+// Only what the hooks need; tests and docs stay out of the plugin checkout.
+export const PLUGIN_SPARSE_PATHS = ['.claude-plugin', 'src', 'hooks', 'commands'];
+
 // Each scope is one of:
 //   block: marker block upserted into a shared file
 //   file:  a file this tool owns entirely
 //   print: text shown to the user to paste somewhere by hand
+//   plugin: the Claude Code plugin from this repo, installed via the `claude` CLI
 export const TARGETS = {
   claude: {
     label: 'Claude Code',
     detect: (env) => join(env.home, '.claude'),
     project: { kind: 'block', path: (dir) => join(dir, 'CLAUDE.local.md'), gitignore: 'CLAUDE.local.md' },
     global: { kind: 'block', path: (env) => join(env.home, '.claude', 'CLAUDE.md') },
+    plugin: { kind: 'plugin' },
   },
   cursor: {
     label: 'Cursor',

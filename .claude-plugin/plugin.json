@@ -1,0 +1,38 @@
+{
+  "name": "banglish",
+  "version": "0.2.0",
+  "description": "Talk to Claude in Banglish while everything it ships stays in English. Toggle with /banglish on|off|status.",
+  "author": {
+    "name": "MD. RAKIBUL HASAN",
+    "url": "https://github.com/Nillkabbo"
+  },
+  "homepage": "https://github.com/Nillkabbo/create-banglish-agent",
+  "repository": "https://github.com/Nillkabbo/create-banglish-agent",
+  "license": "MIT",
+  "keywords": ["banglish", "bengali", "language", "bilingual"],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs\"",
+            "timeout": 5,
+            "statusMessage": "Loading Banglish protocol..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/prompt-submit.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

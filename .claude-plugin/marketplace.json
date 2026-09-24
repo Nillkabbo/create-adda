@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "banglish",
+  "description": "Banglish in chat, English in everything shipped.",
+  "owner": {
+    "name": "MD. RAKIBUL HASAN",
+    "url": "https://github.com/Nillkabbo"
+  },
+  "plugins": [
+    {
+      "name": "banglish",
+      "description": "Talk to Claude in Banglish while code, commits, and docs stay in English.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}

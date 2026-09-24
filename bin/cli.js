@@ -5,6 +5,7 @@ import { join, relative, sep } from 'node:path';
 import { parseArgs, styleText } from 'node:util';
 import { TARGETS } from '../src/targets.js';
 import { buildPlan, applyPlan } from '../src/plan.js';
+import { onPath } from '../src/paths.js';
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const TARGET_IDS = Object.keys(TARGETS);
@@ -16,7 +17,8 @@ Run with no options for the interactive setup.
 
 Options:
   --target <ids>          Comma-separated targets: ${TARGET_IDS.join(', ')}
-  --scope project|global  Scope for targets that support both (default: project)
+  --scope <scope>         project, global, or plugin (Claude Code only). Default: plugin for
+                          Claude when the claude CLI is installed, otherwise project
   -y, --yes               Skip the confirmation prompt
   --remove                Uninstall the rule from the chosen targets
   --print web             Print the web prompt only (pipe-friendly)
@@ -58,14 +60,30 @@ function parseTargets(value) {
   return [...new Set(ids)];
 }
 
+const SCOPE_LABELS = {
+  plugin: 'Plugin (recommended: auto-loads every session, toggle with /banglish on|off)',
+  project: 'This project (gitignored, only you)',
+  global: 'Global (all your projects)',
+};
+
 function parseScope(value) {
-  if (value !== 'project' && value !== 'global') {
-    throw new UsageError(`--scope must be "project" or "global", got "${value}".`);
+  if (!SCOPE_LABELS[value]) {
+    throw new UsageError(`--scope must be "project", "global", or "plugin", got "${value}".`);
   }
   return value;
 }
 
-async function promptChoices(env) {
+const scopesOf = (id) => Object.keys(SCOPE_LABELS).filter((scope) => TARGETS[id][scope]);
+
+// A requested scope the target lacks falls back to the target's own default (plugin → project).
+function scopeFor(id, requested, hasClaude) {
+  if (requested && TARGETS[id][requested]) return requested;
+  if (requested && requested !== 'plugin') return requested;
+  if (!requested && TARGETS[id].plugin && hasClaude) return 'plugin';
+  return TARGETS[id].project ? 'project' : 'global';
+}
+
+async function promptChoices(env, hasClaude) {
   const { checkbox, select } = await import('@inquirer/prompts');
   const targets = await checkbox({
     message: 'Which AI tools should talk to you in Banglish?',
@@ -78,13 +96,16 @@ async function promptChoices(env) {
   });
   const scopes = {};
   for (const id of targets) {
-    if (!TARGETS[id].project || !TARGETS[id].global) continue;
+    const available = scopesOf(id);
+    if (available.length < 2) continue;
     scopes[id] = await select({
       message: `${TARGETS[id].label}: where should the rule live?`,
-      choices: [
-        { name: 'This project (gitignored, only you)', value: 'project' },
-        { name: 'Global (all your projects)', value: 'global' },
-      ],
+      default: scopeFor(id, undefined, hasClaude),
+      choices: available.map((scope) => ({
+        name: SCOPE_LABELS[scope],
+        value: scope,
+        disabled: scope === 'plugin' && !hasClaude ? '(claude CLI not found)' : false,
+      })),
     });
   }
   return { targets, scopes };
@@ -99,6 +120,7 @@ function display(path, env) {
 
 function describe(action, env) {
   if (action.type === 'print') return `${paint('cyan', 'print ')} ${action.title}`;
+  if (action.type === 'exec') return `${paint('cyan', 'run   ')} ${[action.command, ...action.args].join(' ')}`;
   const where = display(action.path, env);
   if (action.type === 'delete') return `${paint('red', 'delete')} ${where}`;
   return existsSync(action.path)
@@ -126,20 +148,32 @@ async function main() {
   }
 
   const interactive = process.stdin.isTTY && process.stdout.isTTY;
+  const hasClaude = onPath('claude');
   let choices;
   if (flags.target) {
     const targets = parseTargets(flags.target);
-    const scope = flags.scope ? parseScope(flags.scope) : 'project';
-    choices = { targets, scopes: Object.fromEntries(targets.map((id) => [id, scope])) };
+    const scope = flags.scope ? parseScope(flags.scope) : undefined;
+    choices = { targets, scopes: Object.fromEntries(targets.map((id) => [id, scopeFor(id, scope, hasClaude)])) };
   } else if (interactive) {
     console.log(paint('bold', `\ncreate-banglish-agent v${pkg.version}`));
     console.log('Banglish in chat, English in everything shipped.\n');
-    choices = await promptChoices(env);
+    choices = await promptChoices(env, hasClaude);
   } else {
     throw new UsageError('No TTY detected: pass --target (and --yes) to run non-interactively.');
   }
+  if (Object.values(choices.scopes).includes('plugin') && !hasClaude) {
+    throw new Error('claude CLI not found on PATH. Install Claude Code, or use --scope project or global.');
+  }
 
-  const plan = buildPlan({ ...choices, remove: flags.remove, out: flags.out }, env);
+  const plan = buildPlan(
+    {
+      ...choices,
+      remove: flags.remove,
+      out: flags.out,
+      marketplace: process.env.BANGLISH_AGENT_MARKETPLACE || undefined,
+    },
+    env,
+  );
   if (!plan.actions.length) {
     plan.warnings.forEach((warning) => console.log(paint('yellow', `! ${warning}`)));
     return void console.log('Nothing to do.');
@@ -159,6 +193,9 @@ async function main() {
     .filter((action) => action.type === 'print')
     .forEach((action) => printBox(action.title, action.content));
   plan.warnings.forEach((warning) => console.log(paint('yellow', `! ${warning}`)));
+  if (plan.actions.some((action) => action.type === 'exec' && action.args[1] === 'install')) {
+    console.log(paint('bold', '\nRestart Claude Code (or run /clear) to activate the Banglish plugin.'));
+  }
   console.log(paint('green', '\nDone.'));
 }
 

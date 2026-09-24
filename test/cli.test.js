@@ -2,20 +2,43 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
-import { sandbox, read, exists } from './helpers.js';
+import { dirname, join } from 'node:path';
+import { chmodSync } from 'node:fs';
+import { sandbox, read, exists, write } from './helpers.js';
 
 const CLI = fileURLToPath(new URL('../bin/cli.js', import.meta.url));
 
-// stdin is a pipe, so the CLI always sees a non-TTY session here.
-function run(args, box) {
+// A stand-in `claude` that logs its arguments; FAKE_CLAUDE_EXIT makes it fail.
+function fakeClaude(box) {
+  const bin = join(box.root, 'bin');
+  write(
+    join(bin, 'claude'),
+    '#!/bin/sh\necho "claude $*" >> "$FAKE_CLAUDE_LOG"\n[ -n "$FAKE_CLAUDE_EXIT" ] && echo "boom" >&2\nexit ${FAKE_CLAUDE_EXIT:-0}\n',
+  );
+  chmodSync(join(bin, 'claude'), 0o755);
+  return bin;
+}
+
+// stdin is a pipe, so the CLI always sees a non-TTY session here. PATH holds only node (and the
+// fake claude when `withClaude` is set), so tests can never reach a real `claude` binary.
+function run(args, box, { withClaude = false, env = {} } = {}) {
+  const path = [withClaude && fakeClaude(box), dirname(process.execPath)].filter(Boolean).join(':');
   const result = spawnSync(process.execPath, [CLI, ...args], {
     cwd: box.cwd,
-    env: { ...process.env, HOME: box.home, CODEX_HOME: join(box.home, '.codex'), NO_COLOR: '1' },
+    env: {
+      HOME: box.home,
+      CODEX_HOME: join(box.home, '.codex'),
+      PATH: path,
+      NO_COLOR: '1',
+      FAKE_CLAUDE_LOG: join(box.root, 'claude.log'),
+      ...env,
+    },
     encoding: 'utf8',
   });
   return { code: result.status, stdout: result.stdout, stderr: result.stderr };
 }
+
+const claudeLog = (box) => (exists(join(box.root, 'claude.log')) ? read(join(box.root, 'claude.log')) : '');
 
 test('flags install claude at project scope without prompting', () => {
   const box = sandbox();
@@ -76,7 +99,7 @@ test('unknown targets are rejected', () => {
 
 test('project scope in the home directory fails with a pointer to --scope global', () => {
   const box = sandbox();
-  const { code, stderr } = run(['--target', 'claude', '--yes'], { ...box, cwd: box.home });
+  const { code, stderr } = run(['--target', 'claude', '--scope', 'project', '--yes'], { ...box, cwd: box.home });
 
   assert.equal(code, 1);
   assert.match(stderr, /--scope global/);
@@ -88,4 +111,65 @@ test('--help prints usage and exits 0', () => {
 
   assert.equal(code, 0);
   assert.match(stdout, /--target <ids>/);
+});
+
+test('claude defaults to the plugin when the claude CLI is on PATH', () => {
+  const box = sandbox();
+  const { code, stdout } = run(['--target', 'claude', '--yes'], box, { withClaude: true });
+
+  assert.equal(code, 0);
+  assert.equal(
+    claudeLog(box),
+    'claude plugin marketplace add Nillkabbo/create-banglish-agent --sparse .claude-plugin src hooks commands\n' +
+      'claude plugin install banglish@banglish --scope user\n',
+  );
+  assert.match(stdout, /run\s+claude plugin install banglish@banglish/);
+  assert.match(stdout, /Restart Claude Code/);
+  assert.equal(exists(join(box.repo, 'CLAUDE.local.md')), false);
+});
+
+test('claude falls back to project scope when the claude CLI is missing', () => {
+  const box = sandbox();
+  const { code } = run(['--target', 'claude', '--yes'], box);
+
+  assert.equal(code, 0);
+  assert.ok(exists(join(box.repo, 'CLAUDE.local.md')));
+});
+
+test('--scope plugin without the claude CLI is an error', () => {
+  const box = sandbox();
+  const { code, stderr } = run(['--target', 'claude', '--scope', 'plugin', '--yes'], box);
+
+  assert.equal(code, 1);
+  assert.match(stderr, /claude CLI not found/);
+});
+
+test('--scope plugin --remove uninstalls the plugin', () => {
+  const box = sandbox();
+  const { code } = run(['--remove', '--target', 'claude', '--scope', 'plugin', '--yes'], box, { withClaude: true });
+
+  assert.equal(code, 0);
+  assert.equal(claudeLog(box), 'claude plugin uninstall banglish@banglish\n');
+});
+
+test('BANGLISH_AGENT_MARKETPLACE points the install at another marketplace source', () => {
+  const box = sandbox();
+  run(['--target', 'claude', '--scope', 'plugin', '--yes'], box, {
+    withClaude: true,
+    env: { BANGLISH_AGENT_MARKETPLACE: '/tmp/local-checkout' },
+  });
+
+  assert.match(claudeLog(box), /^claude plugin marketplace add \/tmp\/local-checkout\n/);
+});
+
+test('a failing claude command exits 1 and tells the user to run it by hand', () => {
+  const box = sandbox();
+  const { code, stderr } = run(['--target', 'claude', '--scope', 'plugin', '--yes'], box, {
+    withClaude: true,
+    env: { FAKE_CLAUDE_EXIT: '1' },
+  });
+
+  assert.equal(code, 1);
+  assert.match(stderr, /Command failed: claude plugin marketplace add/);
+  assert.match(stderr, /Run it by hand/);
 });

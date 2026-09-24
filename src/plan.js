@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import {
   upsertBlock,
   removeBlock,
@@ -16,7 +17,13 @@ import {
   addGitignoreLines,
   removeGitignoreLines,
 } from './blocks.js';
-import { TARGETS, rulesBody } from './targets.js';
+import {
+  TARGETS,
+  rulesBody,
+  PLUGIN_ID,
+  DEFAULT_MARKETPLACE,
+  PLUGIN_SPARSE_PATHS,
+} from './targets.js';
 import { findGitRoot } from './paths.js';
 
 const readOrEmpty = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : '');
@@ -35,7 +42,38 @@ function resolveProjectDir(env) {
   return { dir, gitRoot };
 }
 
+function pluginInstallActions(options) {
+  const source = options.marketplace ?? DEFAULT_MARKETPLACE;
+  // `claude` rejects --sparse for directory sources; it only applies to git checkouts.
+  const isLocal = /^([./~]|[A-Za-z]:\\)/.test(source);
+  const sparse = isLocal ? [] : ['--sparse', ...PLUGIN_SPARSE_PATHS];
+  return [
+    { type: 'exec', command: 'claude', args: ['plugin', 'marketplace', 'add', source, ...sparse] },
+    { type: 'exec', command: 'claude', args: ['plugin', 'install', PLUGIN_ID, '--scope', 'user'] },
+  ];
+}
+
+// The plugin injects the rules itself, so Claude marker blocks would load them twice.
+function duplicateBlockCleanup(env) {
+  const claude = TARGETS.claude;
+  const actions = removeActions(claude.global, claude.global.path(env), env.home);
+  let project;
+  try {
+    project = resolveProjectDir(env);
+  } catch {
+    return actions; // cwd is $HOME: there is no project file to clean up.
+  }
+  const local = removeActions(claude.project, claude.project.path(project.dir), project.dir);
+  actions.push(...local);
+  if (project.gitRoot && local.some((action) => action.type === 'delete')) {
+    actions.push(...gitignoreActions(project, [claude.project.gitignore], true));
+  }
+  return actions;
+}
+
 function installActions(spec, path, body, options, env) {
+  // Cleanup runs after the commands, so a failed install leaves the existing rules in place.
+  if (spec.kind === 'plugin') return [...pluginInstallActions(options), ...duplicateBlockCleanup(env)];
   if (spec.kind === 'print' && spec.writable && options.out) {
     return [{ type: 'write', path: resolve(env.cwd, options.out), content: spec.render(body) }];
   }
@@ -48,6 +86,9 @@ function installActions(spec, path, body, options, env) {
 }
 
 function removeActions(spec, path, root) {
+  if (spec.kind === 'plugin') {
+    return [{ type: 'exec', command: 'claude', args: ['plugin', 'uninstall', PLUGIN_ID] }];
+  }
   if (spec.kind === 'print' || !existsSync(path)) return [];
   // Owned files may sit in folders we created (.cursor/rules); prune them up to the root if empty.
   if (spec.kind === 'file') return [{ type: 'delete', path, pruneUpTo: root }];
@@ -100,8 +141,21 @@ export function buildPlan(options, env) {
   return { actions, warnings };
 }
 
-export function applyPlan(plan) {
+function runCommand(command, args) {
+  const result = spawnSync(command, args, { encoding: 'utf8' });
+  return { code: result.error ? 1 : result.status, stderr: result.error?.message ?? result.stderr };
+}
+
+export function applyPlan(plan, { run = runCommand } = {}) {
   for (const action of plan.actions) {
+    if (action.type === 'exec') {
+      const { code, stderr } = run(action.command, action.args);
+      if (code !== 0) {
+        const command = [action.command, ...action.args].join(' ');
+        throw new Error(`Command failed: ${command}\n${stderr.trim()}\nRun it by hand, then re-run this tool.`);
+      }
+      continue;
+    }
     if (action.type === 'write') {
       mkdirSync(dirname(action.path), { recursive: true });
       writeFileSync(action.path, action.content);
