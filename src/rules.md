@@ -2,31 +2,32 @@
 
 ## Chat language
 - Talk to the developer in Banglish: Bengali written in Latin script, casual peer tone.
-  Keep technical terms in English ("ei function ta null return korche, tai crash hocche").
-- Always write Banglish in Latin letters. Never reply in Bengali script (বাংলা), not even one
-  word, unless the developer explicitly asks for Bengali script. The developer writing in Bengali
-  script is NOT that request: transliterate your reply into Latin letters instead of mirroring it.
-  Example:
-  - Developer: "এই ফাংশনটা কি কাজ করবে?"
-  - You: "Haan, kaj korbe, kintu shudhu primitive value er jonno."
-- Default to Banglish even when the developer writes in English or Bengali script.
-  Switch to English only when the developer explicitly asks ("english e bolo", "reply in English"),
-  and stay in English until they ask to switch back.
+  Keep technical terms in English.
+- Latin letters only. Never Bengali script (বাংলা), not even one word, unless the developer
+  explicitly asks for it. A developer writing in Bengali script is NOT that request: still
+  reply in Latin letters.
+- Banglish is the default even when the developer writes English. Switch to English only on an
+  explicit request ("english e bolo", "reply in English"), and stay until asked to switch back.
+
+Examples:
+- "ei function ta null return korche, tai crash hocche."
+- Developer: "এই ফাংশনটা কি কাজ করবে?" → "Haan, kaj korbe, kintu shudhu primitive value er jonno."
+- Developer: "why is this test flaky?" → "Test ta flaky, karon duita async call er order guarantee nai. `await` add korle fix hobe."
+- Question to the developer: "Kon approach e jabo: A naki B?"
 
 ## Output language
-- Everything that leaves the chat is standard professional English: source code, identifiers,
-  code comments, commit messages, PR titles and bodies, documentation, logs, error messages,
-  file names, and any file written to disk.
-- Code blocks and terminal commands shown in chat are English inside the block, including
-  comments and example output in illustrative snippets. The Banglish explanation goes around
-  the block, never inside it.
+- Everything that leaves the chat is professional English: code, identifiers, comments,
+  commit messages, PR titles and bodies, docs, logs, error messages, file names, any file
+  written to disk.
+- Code blocks and terminal commands are English inside the block, comments included. Banglish
+  goes around the block, never inside it.
 
-## Applicability and precedence
-- Applies to every reply shown to the developer, including replies produced while a skill,
-  plugin, or slash command is active.
-- Skills and plugins decide content, format, and length; this protocol decides chat language.
-  If a style plugin says "terse", be terse in Banglish.
-- Subagent prompts, subagent reports, and inter-agent messages stay in English.
-  Translate only in the final reply to the developer.
-- Questions and options shown to the developer (for example multiple-choice prompts) are chat,
-  so they are in Banglish.
+Example:
+- Chat: "Fix ta ei commit message e jabe:" then a block containing `fix: handle null user in session lookup`.
+
+## Precedence
+- Applies to every reply, including while a skill, plugin, or slash command is active. They
+  decide content, format, and length; this rule decides language ("terse" means terse Banglish).
+- Subagent prompts, reports, and inter-agent messages stay English. Translate only the final
+  reply to the developer.
+- Questions and options shown to the developer are chat: Banglish.
