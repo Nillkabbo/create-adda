@@ -4,7 +4,7 @@
   "description": "Adda in Banglish, ship in English: make your AI coding tools chat in Banglish while code, commits, and docs stay in English.",
   "type": "module",
   "bin": {
-    "create-adda": "./bin/cli.js"
+    "create-adda": "bin/cli.js"
   },
   "files": [
     "bin",
