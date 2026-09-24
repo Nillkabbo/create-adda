@@ -19,6 +19,8 @@ Targets live in a registry. Each target is one object describing its label, supp
 | Gemini CLI | — | `~/.gemini/GEMINI.md`, marker block |
 | Web (ChatGPT / Claude.ai / Gems) | — | print prompt to stdout; `--out <path>` writes a file instead |
 
+Claude Code also has a third scope, `plugin`, which is its default when the `claude` CLI is installed (see [ADR 0001](adr/0001-plugin-is-the-default-claude-code-delivery.md) and the plugin section below).
+
 Excluded on purpose: `.cursorrules` (deprecated), project `AGENTS.md` / `GEMINI.md` / `.github/copilot-instructions.md` (shared, committed files).
 
 ## Rule content
@@ -55,7 +57,7 @@ The body covers:
 Interactive (TTY):
 
 1. Multi-select targets. Pre-check tools whose config folder exists (`~/.claude`, `~/.cursor`, `~/.codex`, `~/.gemini`); Web unchecked. At least one required.
-2. For each chosen target with both scopes: select `This project` / `Global (all projects)`. Global-only targets skip this.
+2. For each chosen target with more than one scope: select `Plugin` / `This project` / `Global (all projects)`. Plugin is Claude Code only and is disabled when the `claude` CLI is not on `PATH`. Global-only targets skip this. With `--remove`, this step is skipped and every scope is cleared.
 3. Print a summary of planned actions (create / update block / write / delete / print, with paths).
 4. One `Proceed? (Y/n)` confirm, then apply.
 
@@ -64,30 +66,35 @@ Flags:
 | Flag | Meaning |
 |---|---|
 | `--target <ids>` | Comma-separated: `claude,cursor,codex,gemini,web` |
-| `--scope project\|global` | Scope for targets that support both (default `project`) |
+| `--scope project\|global\|plugin` | Scope for targets that support it (`plugin` is Claude Code only). Default: `plugin` for Claude when the `claude` CLI is on `PATH`, otherwise `project`; global-only targets always use `global` |
 | `--yes`, `-y` | Skip the confirm |
-| `--remove` | Uninstall instead of install |
+| `--remove` | Uninstall instead of install. Without `--scope`, removes the target from every scope it can live in |
 | `--print web` | Print the web prompt only; pipe-friendly, no banner |
 | `--out <path>` | Web target writes to this file instead of stdout |
 | `--help`, `-h` / `--version`, `-v` | Usage / version |
 
-No TTY and no `--target` → exit with a usage error (code 1) instead of hanging.
+No TTY and no `--target` → exit with a usage error (code 1) instead of hanging. No TTY and no `--yes` → exit with a usage error instead of applying unconfirmed changes.
+
+Environment variables: `ADDA_MARKETPLACE` (plugin marketplace source override), `CODEX_HOME` (Codex config directory), `NO_COLOR` (disable colors).
 
 ## Architecture
 
 - `bin/cli.js`: thin shell. Parses args, prompts, prints the plan, confirms, applies.
 - `src/rules.md`: canonical rule body.
-- `src/blocks.js`: pure string functions (`upsertBlock`, `removeBlock`, gitignore add/remove).
+- `src/blocks.js`: pure string functions (`upsertBlock`, `removeBlock`, `blockCreatedFile`, gitignore add/remove).
 - `src/targets.js`: target registry and per-target rendering.
-- `src/plan.js`: builds a list of `{ path, action, content }` actions from choices and the environment (`cwd`, `home`, `env`, file reader). No writes.
-- `src/apply.js`: executes a plan against the file system.
-- `src/paths.js`: git root lookup, `$HOME` guard.
+- `src/plan.js`:
+  - `buildPlan(options, env)` builds a list of actions from choices and the environment (`cwd`, `home`, `codexHome`, `pluginInstalled`). It reads files but never writes. Action types: `write`, `delete`, `exec`, `print`.
+  - `applyPlan(plan, { run })` executes the actions; `run` is an injectable command runner.
+  - `isPluginInstalled()` asks `claude plugin list --json`. The `$HOME` guard also lives here.
+- `src/paths.js`: git root lookup, executable lookup on `PATH` (Windows `PATHEXT` aware).
+- `hooks/`, `commands/`: the Claude Code plugin runtime (see below).
 
 ## Stack
 
 - ESM (`"type": "module"`), Node `>=20.17`.
 - Single runtime dependency: `@inquirer/prompts`. Colors via `node:util` `styleText`.
-- `"files": ["bin", "src"]`; MIT license; version `0.1.0`.
+- `"files": ["bin", "src"]`; MIT license; `package.json` is the version source.
 
 ## Testing
 
@@ -116,7 +123,9 @@ The repo is also a Claude Code marketplace (`adda`) whose plugin (`adda`) lives 
 ### Installer integration
 
 - Claude target gains a `plugin` scope, the default when `claude` is on `PATH`; `--scope plugin` on the command line.
-- Install plans `exec` actions: `claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin src hooks commands`, then `claude plugin install adda@adda --scope user`. It also strips any Claude marker block from `<project>/CLAUDE.local.md` and `~/.claude/CLAUDE.md` to avoid duplicate rules.
+- Install plans `exec` actions: `claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin`, then `claude plugin install adda@adda --scope user`. `ADDA_MARKETPLACE` overrides the source; a local directory source is added without `--sparse`, which only git sources support.
+- Install then strips any Claude marker block from `<project>/CLAUDE.local.md` and `~/.claude/CLAUDE.md` (and the matching `.gitignore` line) to avoid duplicate rules. The cleanup runs after the commands, so a failed install leaves the existing rules in place.
+- The reverse holds too: moving Claude to a block scope while the plugin is installed plans `claude plugin uninstall adda@adda`. The rules never load twice.
 - Remove plans `claude plugin uninstall adda@adda`; the marketplace entry stays.
 - `applyPlan` takes an injected command runner. A failing `exec` stops the run and prints the command to run by hand; completed file changes are not rolled back.
 - After a plugin install, print a hint to restart Claude Code or run `/clear`.
