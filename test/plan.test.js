@@ -127,6 +127,16 @@ test('hermes refuses to install when SOUL.md does not exist yet', () => {
   assert.equal(exists(join(home, '.hermes')), false);
 });
 
+test('hermes install then remove restores a SOUL.md without a trailing newline byte for byte', () => {
+  const { home, env } = sandbox();
+  const persona = 'You are Hermes Agent, built by Nous Research. Be direct.';
+  write(join(home, '.hermes', 'SOUL.md'), persona);
+  install(env, { targets: ['hermes'] });
+  install(env, { targets: ['hermes'], remove: true });
+
+  assert.equal(read(join(home, '.hermes', 'SOUL.md')), persona);
+});
+
 test('hermes remove strips the block and keeps the persona', () => {
   const { home, env } = sandbox();
   write(join(home, '.hermes', 'SOUL.md'), '# Personality\n\nDirect, no filler.\n');

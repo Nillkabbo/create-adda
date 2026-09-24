@@ -46,10 +46,10 @@ The body covers:
 
 ## File handling
 
-- **Marker block upsert**: if the block exists, replace its contents; otherwise append it (separated by a blank line); if the file is missing, create it (and parent directories).
+- **Marker block upsert**: if the block exists, replace its contents; otherwise append it after the existing text, which is kept byte for byte, separated by a blank line; if the file is missing, create it (and parent directories). The start marker carries flags that let `--remove` undo the install exactly: `created-file` (this tool created the file) and `no-eol` (the file had no trailing newline before the block was appended).
 - **Owned files** (`adda.mdc`): written whole.
 - **Re-running** the CLI is the update path: blocks and owned files are refreshed from the current `rules.md`.
-- **`--remove`**: strip marker blocks (delete the file if nothing but whitespace remains), delete owned files, remove the gitignore block lines.
+- **`--remove`**: strip marker blocks and exactly the separator the install added, so the file is restored byte for byte (a file this tool created is deleted instead); delete owned files; remove the gitignore block lines. Blocks written before the `no-eol` flag existed are removed as before.
 - **Project scope location**: walk up from `cwd` to the nearest `.git` root and write there. No git root → write to `cwd` and warn that `.gitignore` was skipped. Refuse project scope when the resolved directory is `$HOME`; suggest `--scope global`.
 - **`.gitignore`**: only inside a git repo. Add a `# adda` section containing only the lines for chosen project-scope targets, never duplicating existing lines. Create `.gitignore` if missing. `--remove` deletes those lines and the section header.
 

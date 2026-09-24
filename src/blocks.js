@@ -1,16 +1,25 @@
-const START = '<!-- adda:start -->';
-// Marks a block whose file this tool created, so --remove may delete the file afterwards.
-const START_CREATED = '<!-- adda:start created-file -->';
+// Start marker flags record what --remove needs to undo an install exactly:
+//   created-file  this tool created the file, so --remove may delete it
+//   no-eol        the file had no trailing newline before the block was appended
+const START_RE = /<!-- adda:start((?: [a-z-]+)*) -->/;
 const END = '<!-- adda:end -->';
 
 function findBlock(text) {
-  const created = text.indexOf(START_CREATED);
-  const start = created !== -1 ? created : text.indexOf(START);
-  if (start === -1) return null;
-  const end = text.indexOf(END, start);
+  const match = START_RE.exec(text);
+  if (!match) return null;
+  const end = text.indexOf(END, match.index);
   if (end === -1) return null;
-  return { start, end: end + END.length, created: created !== -1 };
+  const flags = match[1].trim().split(' ').filter(Boolean);
+  return {
+    start: match.index,
+    end: end + END.length,
+    created: flags.includes('created-file'),
+    noEol: flags.includes('no-eol'),
+  };
 }
+
+const startMarker = ({ created, noEol }) =>
+  `<!-- adda:start${created ? ' created-file' : ''}${noEol ? ' no-eol' : ''} -->`;
 
 export function blockCreatedFile(text) {
   return Boolean(findBlock(text)?.created);
@@ -18,22 +27,29 @@ export function blockCreatedFile(text) {
 
 export function upsertBlock(text, body, { createdFile = false } = {}) {
   const found = findBlock(text);
-  const startMarker = (found ? found.created : createdFile) ? START_CREATED : START;
-  const inner = `${startMarker}\n${body.trim()}\n${END}`;
-  if (found) return text.slice(0, found.start) + inner + text.slice(found.end);
-  const existing = text.trimEnd();
-  return existing ? `${existing}\n\n${inner}\n` : `${inner}\n`;
+  const block = (flags) => `${startMarker(flags)}\n${body.trim()}\n${END}`;
+  if (found) return text.slice(0, found.start) + block(found) + text.slice(found.end);
+  if (!text) return `${block({ created: createdFile, noEol: false })}\n`;
+  // Keep the user's text byte for byte and add a blank line before the block.
+  const noEol = !text.endsWith('\n');
+  return `${text}${noEol ? '\n\n' : '\n'}${block({ created: false, noEol })}\n`;
 }
 
 export function removeBlock(text) {
   const found = findBlock(text);
   if (!found) return text;
-  const before = text.slice(0, found.start).trimEnd();
-  const after = text.slice(found.end).replace(/^\s+/, '');
-  if (!before && !after) return '';
-  if (!before) return after;
-  if (!after) return `${before}\n`;
-  return `${before}\n\n${after}`;
+  const before = text.slice(0, found.start);
+  const rest = text.slice(found.end);
+  // A block at the end of the file: drop exactly the separator the install added.
+  if (/^\n?$/.test(rest)) {
+    if (!before.trim()) return '';
+    if (found.noEol && before.endsWith('\n\n')) return before.slice(0, -2);
+    return before.endsWith('\n\n') ? before.slice(0, -1) : before;
+  }
+  const head = before.trimEnd();
+  const after = rest.replace(/^\s+/, '');
+  if (!head) return after;
+  return `${head}\n\n${after}`;
 }
 
 const GITIGNORE_HEADER = '# adda';

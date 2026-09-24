@@ -16,10 +16,10 @@ test('upsertBlock appends after existing content, separated by a blank line', ()
   );
 });
 
-test('upsertBlock adds a missing trailing newline before appending', () => {
+test('upsertBlock marks a block appended to a file without a trailing newline', () => {
   assert.equal(
     upsertBlock('# My notes', 'Rule.'),
-    '# My notes\n\n<!-- adda:start -->\nRule.\n<!-- adda:end -->\n',
+    '# My notes\n\n<!-- adda:start no-eol -->\nRule.\n<!-- adda:end -->\n',
   );
 });
 
@@ -54,4 +54,22 @@ test('removeBlock returns an empty string when only the block was in the file', 
 
 test('removeBlock leaves text without a block unchanged', () => {
   assert.equal(removeBlock('# Nothing here\n'), '# Nothing here\n');
+});
+
+// Install then remove must give back the exact original file, whatever its trailing whitespace.
+for (const [name, original] of [
+  ['no trailing newline (a seeded Hermes SOUL.md)', '# Persona\n\nBe direct.'],
+  ['one trailing newline', '# Notes\n- keep me\n'],
+  ['several trailing blank lines', '# Notes\n\n\n'],
+]) {
+  test(`upsertBlock then removeBlock restores the file exactly: ${name}`, () => {
+    const installed = upsertBlock(original, 'Rule.');
+    assert.equal(removeBlock(installed), original);
+    assert.equal(removeBlock(upsertBlock(installed, 'Updated rule.')), original);
+  });
+}
+
+test('removeBlock still undoes installs made before the no-eol flag existed', () => {
+  const legacy = '# Notes\n\n<!-- adda:start -->\nRule.\n<!-- adda:end -->\n';
+  assert.equal(removeBlock(legacy), '# Notes\n');
 });

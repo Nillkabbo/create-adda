@@ -29,7 +29,7 @@ The interactive setup asks which tools to configure, where the rule should live,
 
 The rule is personal. Project files are gitignored and never pushed onto teammates.
 
-Shared files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) are never overwritten. The rule goes inside a marked block and the rest of the file is left untouched:
+Shared files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Hermes's `SOUL.md`) are never overwritten. The rule goes inside a marked block and the rest of the file is left untouched:
 
 ```markdown
 <!-- adda:start -->
@@ -37,7 +37,7 @@ Shared files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) are never overwritten. The 
 <!-- adda:end -->
 ```
 
-Running the tool again refreshes the block to the latest rules. `--remove` takes it out.
+Running the tool again refreshes the block to the latest rules. `--remove` takes it out and leaves the file exactly as it was before the install.
 
 ## Claude Code plugin
 
