@@ -47,3 +47,7 @@ test('renderReply cuts a long reply at a line boundary and marks the cut', () =>
 test('the page tells users that Bangla script works better on smaller models', () => {
   assert.match(html, /বাংলা হরফে লিখলে সাধারণত ভালো উত্তর আসে/);
 });
+
+test('the page stays out of search engines until the golden review is done', () => {
+  assert.match(html, /<meta name="robots" content="noindex">/);
+});

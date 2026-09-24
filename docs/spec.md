@@ -172,7 +172,7 @@ A Skill is added on top of the base Rule only when needed. Each is a separate pa
 ### Files and delivery
 
 - `src/profiles/everyday/base.md`, `src/profiles/everyday/skills/write.md`, `src/profiles/everyday/skills/explain.md`. File names and code stay English; the texts inside are the Rule.
-- Delivery is Print only. `scripts/build-site.mjs` generates a static Bangla-first page (`site/`, GitHub Pages) from those files, with a copy button per text and short steps for pasting into each platform. No install and no CLI.
+- Delivery is Print only. `scripts/build-site.mjs` generates a static Bangla-first page (`site/`, GitHub Pages) from those files, with a copy button per text and short steps for pasting into each platform. No install and no CLI. `.github/workflows/pages.yml` builds and deploys it on every push to `main`. The page is `noindex` and unlinked from the README until the golden review is done.
 - Platform-native packaging (Claude Skill, Custom GPT, Gem) comes later, once the texts are stable.
 
 ### Evaluation

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Builds site/index.html: the Bangla page where everyday users copy the Rule and the Skills.
 // The texts come from src/profiles/everyday and the hero pair from eval/golden/hero.json,
-// so the page can never drift from what the eval tests.
+// so the page can never drift from what the eval tests. It is noindex until a Bangla speaker has
+// reviewed the golden examples (issue #7).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -185,6 +186,7 @@ export function buildSite() {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
 <title>আড্ডা: আপনার এআই এবার বাংলায় কথা বলবে</title>
 <meta name="description" content="ChatGPT, Claude বা Gemini-কে স্বাভাবিক বাংলায় কথা বলানোর একটা লেখা। কপি করুন, বসান, শেষ।">
 <style>${CSS}</style>
