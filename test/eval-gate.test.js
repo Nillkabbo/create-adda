@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { suitesFor } from '../scripts/eval-gate.mjs';
+import { evalArgs, suitesFor } from '../scripts/eval-gate.mjs';
 
 const GATE = fileURLToPath(new URL('../scripts/eval-gate.mjs', import.meta.url));
 
@@ -20,6 +20,12 @@ test('changes to both rules run both suites', () => {
 
 test('a release without rule changes runs no eval', () => {
   assert.deepEqual(suitesFor(['src/plan.js', 'README.md', 'docs/demo.gif']), []);
+});
+
+test('the developer suite runs on haiku and the everyday suite on sonnet, 3 runs each', () => {
+  // Everyday users are on the web apps' default models; haiku mixes scripts in Banglish replies (#11).
+  assert.deepEqual(evalArgs('developer'), ['--suite', 'developer', '--model', 'haiku', '--runs', '3']);
+  assert.deepEqual(evalArgs('everyday'), ['--suite', 'everyday', '--model', 'sonnet', '--runs', '3']);
 });
 
 test('ADDA_SKIP_EVAL skips the gate and says so', () => {

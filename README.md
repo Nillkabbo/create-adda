@@ -147,7 +147,7 @@ git push --follow-tags     # CI checks the tag matches package.json
 npm publish
 ```
 
-If `src/rules.md` or `src/profiles/everyday/` changed since the last tag, `npm version` first runs that Rule's live eval (haiku, 3 runs per scenario, through your `claude` login) and stops if any scenario fails on most of its runs. For a flaky run, `ADDA_SKIP_EVAL=1 npm version patch` skips it.
+If `src/rules.md` or `src/profiles/everyday/` changed since the last tag, `npm version` first runs that Rule's live eval (3 runs per scenario through your `claude` login; the developer Rule on haiku, the everyday Rule on sonnet) and stops if any scenario fails on most of its runs. For a flaky run, `ADDA_SKIP_EVAL=1 npm version patch` skips it.
 
 ## Requirements
 

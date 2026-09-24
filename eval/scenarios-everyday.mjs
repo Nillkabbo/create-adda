@@ -29,6 +29,17 @@ export const EVERYDAY_SCENARIOS = [
     prompt: 'amar gas er bill ta ei mash e onek beshi ashse, keno?',
     check: (text, markers) => banglish(markers)(text),
   },
+  // Mobile money in Banglish: sonnet once began a reply here with a mixed-script word ("Kয়েকটা").
+  {
+    id: 'banglish-bkash',
+    prompt: 'bKash e taka pathate parchi na, ki korbo?',
+    check: (text, markers) => banglish(markers)(text),
+  },
+  {
+    id: 'banglish-nagad',
+    prompt: 'Nagad theke cash out korte gele error ashche, ki kora uchit?',
+    check: (text, markers) => banglish(markers)(text),
+  },
   {
     id: 'english-in',
     prompt: 'Why is my laptop fan so loud all the time?',

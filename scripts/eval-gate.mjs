@@ -16,6 +16,14 @@ export function suitesFor(files) {
   return suites;
 }
 
+// Everyday users are on the web apps' default models, and haiku mixes scripts in Banglish
+// replies whatever the wording (#11), so the everyday suite is gated on sonnet.
+const MODELS = { developer: 'haiku', everyday: 'sonnet' };
+
+export function evalArgs(suite) {
+  return ['--suite', suite, '--model', MODELS[suite], '--runs', '3'];
+}
+
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 
 function changedSinceLastTag() {
@@ -40,10 +48,10 @@ function main() {
     return 0;
   }
   for (const suite of suites) {
-    console.log(`Eval gate: ${suite} Rule changed since ${tag ?? 'the start'}, running the ${suite} eval.`);
+    console.log(`Eval gate: ${suite} Rule changed since ${tag ?? 'the start'}, running the ${suite} eval on ${MODELS[suite]}.`);
     const { status } = spawnSync(
       process.execPath,
-      ['eval/run.mjs', '--suite', suite, '--model', 'haiku', '--runs', '3'],
+      ['eval/run.mjs', ...evalArgs(suite)],
       { cwd: root, stdio: 'inherit' },
     );
     if (status !== 0) {
