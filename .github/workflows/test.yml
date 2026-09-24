@@ -32,3 +32,20 @@ jobs:
       - run: npm test
       - name: Package contents
         run: npm pack --dry-run
+
+  # A pushed release tag gets a GitHub Release once every platform passes, so people watching
+  # releases hear about it, and a changed Rule is flagged in the notes.
+  release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: node scripts/release-notes.mjs "$GITHUB_REF_NAME" > notes.md
+      - run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}

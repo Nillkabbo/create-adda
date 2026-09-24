@@ -93,6 +93,13 @@ Your preferences are added after Adda's rules and win wherever the two conflict.
 
 The Claude Code plugin reads them at the start of every session. For the other tools, `--script` and `--tone` list the rules already installed on your machine (global ones, and the project you run it in) that no longer match, and refresh them once you confirm (`--yes` skips the question). After editing `custom.md` by hand, run `npx create-adda --prefs` to do the same. Project installs in other repos are refreshed by running it there, and text you pasted by hand (Cursor User Rules, Web AI) needs pasting again. The interactive setup also asks for script and tone.
 
+## Staying up to date
+
+Installed rules are copies, so they stay as they were until you refresh them. To hear about new versions, watch the repository on GitHub (Watch → Custom → Releases). When a release changes the Rule, its notes open with a note saying so. Then:
+
+- Everything installed with `npx create-adda`: run `npx create-adda --prefs` in any project to refresh the global rules and that project's rules.
+- The Claude Code plugin: `claude plugin update adda@adda`, then restart Claude Code.
+
 ## Options
 
 | Flag | Meaning |
@@ -148,6 +155,8 @@ npm publish
 ```
 
 If `src/rules.md` or `src/profiles/everyday/` changed since the last tag, `npm version` first runs that Rule's live eval (3 runs per scenario through your `claude` login; the developer Rule on haiku, the everyday Rule on sonnet) and stops if any scenario fails on most of its runs. For a flaky run, `ADDA_SKIP_EVAL=1 npm version patch` skips it.
+
+Once the tag's CI passes, it publishes a GitHub Release with notes built by `scripts/release-notes.mjs` from the `feat` and `fix` commits since the previous tag, opening with a callout when the Rule changed.
 
 ## Requirements
 
