@@ -118,6 +118,15 @@ test('copilot remove deletes only its own files and keeps folders that hold othe
   assert.equal(exists(join(repo, '.gitignore')), false);
 });
 
+test('re-installing rules that are already current plans no writes', () => {
+  const { home, env } = sandbox();
+  write(join(home, '.hermes', 'SOUL.md'), '# Persona\n');
+  const options = { targets: ['hermes', 'codex', 'cursor', 'copilot'], scopes: { cursor: 'project', copilot: 'project' } };
+  install(env, options);
+
+  assert.deepEqual(buildPlan(options, env).actions, []);
+});
+
 test('codex and gemini are global-only, even when project scope is requested', () => {
   const { root, home, repo, env } = sandbox();
   const codexHome = join(root, 'custom-codex');

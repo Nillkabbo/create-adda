@@ -34,6 +34,8 @@ const readOrEmpty = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : '
 // A path that does not exist cannot be a symlink, so compare it as written.
 const real = (path) => (existsSync(path) ? realpathSync(path) : resolve(path));
 const samePath = (a, b) => real(a) === real(b);
+// A write whose content the file already has: re-running an install must not report a change.
+const unchanged = (action) => action.type === 'write' && existsSync(action.path) && readOrEmpty(action.path) === action.content;
 
 function assertHomeExists(path, home) {
   if (path.startsWith(resolve(home)) && !existsSync(home)) {
@@ -230,7 +232,7 @@ export function buildPlan(options, env) {
       actions.push(
         ...(options.remove
           ? removeActions(spec, path, root)
-          : installActions(spec, path, body, options, env)),
+          : installActions(spec, path, body, options, env).filter((action) => !unchanged(action))),
       );
       // Moving Claude to a block scope retires the plugin, just as installing the plugin
       // retires the blocks: the rules must never load twice.

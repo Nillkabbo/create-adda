@@ -273,7 +273,7 @@ async function main() {
   );
   if (!plan.actions.length) {
     plan.warnings.forEach((warning) => console.log(paint('yellow', `! ${warning}`)));
-    return void console.log('Nothing to do.');
+    return void console.log(flags.remove ? 'Nothing to do.' : 'Already up to date.');
   }
 
   console.log(paint('bold', flags.remove ? '\nPlanned removal:' : '\nPlanned changes:'));

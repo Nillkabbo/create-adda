@@ -139,6 +139,17 @@ test('hermes installs into an existing SOUL.md and removes cleanly', () => {
   assert.equal(read(join(box.home, '.hermes', 'SOUL.md')), '# Personality\n\nDirect, no filler.\n');
 });
 
+test('re-running an install that is already current says so and writes nothing', () => {
+  const box = sandbox();
+  write(join(box.home, '.hermes', 'SOUL.md'), '# Personality\n');
+  run(['--target', 'hermes', '--yes'], box);
+
+  const { code, stdout } = run(['--target', 'hermes', '--yes'], box);
+  assert.equal(code, 0);
+  assert.match(stdout, /Already up to date/);
+  assert.doesNotMatch(stdout, /update ~/);
+});
+
 test('hermes without a seeded SOUL.md fails with a pointer to run Hermes first', () => {
   const box = sandbox();
   const { code, stderr } = run(['--target', 'hermes', '--scope', 'global', '--yes'], box);
