@@ -24,11 +24,11 @@ The interactive setup asks which tools to configure, where the rule should live,
 
 > **Cursor (limited):** the rule installs and Cursor loads it, but Cursor's Auto model (the only one on free plans) didn't follow it in our tests and kept replying in English. Named models on paid plans are untested.
 >
-> **GitHub Copilot (live test pending):** Adda writes its own instructions file and never touches the shared `.github/copilot-instructions.md`. VS Code also loads `~/.claude/CLAUDE.md` and `CLAUDE.local.md` into Copilot Chat, so if you installed Claude Code at project or global scope, VS Code already has the rule and this target only adds a second copy of the same text. The Claude Code plugin writes no `CLAUDE.md` block, so plugin users need this target.
+> **GitHub Copilot (tested with GPT-4.1, the free-tier default):** Adda writes its own instructions file and never touches the shared `.github/copilot-instructions.md`. VS Code also loads `~/.claude/CLAUDE.md` and `CLAUDE.local.md` into Copilot Chat, so if you installed Claude Code at project or global scope, VS Code already has the rule and this target only adds a second copy of the same text. The Claude Code plugin writes no `CLAUDE.md` block, so plugin users need this target.
 >
 > **Web AI (ChatGPT tested):** ChatGPT followed the prompt when it was pasted as the first message of a chat: Banglish replies, English code, English on request. Pasting it into Custom Instructions (the intended setup) and the Claude.ai and Gemini web apps are untested.
 >
-> Claude Code, Codex CLI, Gemini CLI, and Hermes Agent are tested live: they chat in Banglish while files and commits stay English.
+> Claude Code, GitHub Copilot, Codex CLI, Gemini CLI, and Hermes Agent are tested live: they chat in Banglish while files and commits stay English.
 
 The rule is personal. Project files are gitignored and never pushed onto teammates.
 
