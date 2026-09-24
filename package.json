@@ -13,7 +13,8 @@
   "scripts": {
     "test": "node --test",
     "version": "node scripts/sync-version.mjs && git add .claude-plugin",
-    "eval": "node eval/run.mjs"
+    "eval": "node eval/run.mjs",
+    "site": "node scripts/build-site.mjs"
   },
   "engines": {
     "node": ">=20.17"
