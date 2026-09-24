@@ -23,3 +23,10 @@ export function chatVerdict(text, markers, min = 3) {
   const hits = markerHits(text, markers.chat);
   return { ok: !bengali && hits.length >= min, bengali, hits: [...new Set(hits)] };
 }
+
+// Share of Bengali-script letters among all Bengali and Latin letters. 1 means all Bangla script.
+export function scriptShare(text) {
+  const bengali = (text.match(/[\u0980-\u09FF]/g) ?? []).length;
+  const latin = (text.match(/[A-Za-z]/g) ?? []).length;
+  return bengali + latin === 0 ? 0 : bengali / (bengali + latin);
+}

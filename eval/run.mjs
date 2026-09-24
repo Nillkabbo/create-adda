@@ -10,12 +10,16 @@ import { parseArgs } from 'node:util';
 import { chatVerdict, hasBengaliScript, leakVerdict } from './detect.mjs';
 import { parseStream } from './stream.mjs';
 import { DRIFT_CHECKPOINTS, DRIFT_TURNS, SCENARIOS } from './scenarios.mjs';
+import { EVERYDAY_SCENARIOS } from './scenarios-everyday.mjs';
 
 const USAGE = `Usage: npm run eval -- [options]
 
 Options:
-  --rules <src>      Rule text to test; repeat to compare. A file path or git:<ref>
-                     (src/rules.md at that ref). Default: src/rules.md
+  --suite <name>     developer (default) or everyday
+  --rules <src>      Rule to test; repeat to compare. developer: a file path or git:<ref>
+                     (src/rules.md at that ref), default src/rules.md. everyday: a profile
+                     directory or git:<ref> (src/profiles/everyday at that ref), default
+                     src/profiles/everyday
   --model <list>     Comma-separated models (default: haiku,sonnet)
   --runs <n>         Runs per scenario (default: 3)
   --scenario <ids>   Comma-separated scenario ids (default: all)
@@ -26,6 +30,7 @@ Options:
 
 const { values: flags } = parseArgs({
   options: {
+    suite: { type: 'string', default: 'developer' },
     rules: { type: 'string', multiple: true },
     model: { type: 'string', default: 'haiku,sonnet' },
     runs: { type: 'string', default: '3' },
@@ -39,18 +44,28 @@ if (flags.help) {
   process.stdout.write(USAGE);
   process.exit(0);
 }
+if (!['developer', 'everyday'].includes(flags.suite)) {
+  console.error(`--suite must be "developer" or "everyday", got "${flags.suite}".`);
+  process.exit(1);
+}
+const everyday = flags.suite === 'everyday';
+if (everyday && flags.drift) {
+  console.error('--drift only supports the developer suite.');
+  process.exit(1);
+}
 
 const markers = JSON.parse(
   readFileSync(new URL('../test/fixtures/banglish-markers.json', import.meta.url), 'utf8'),
 );
 const runs = Number.parseInt(flags.runs, 10);
 const models = flags.model.split(',').map((m) => m.trim()).filter(Boolean);
-const variants = (flags.rules?.length ? flags.rules : ['src/rules.md']).map((source) => ({
+const defaultSource = everyday ? 'src/profiles/everyday' : 'src/rules.md';
+const variants = (flags.rules?.length ? flags.rules : [defaultSource]).map((source) => ({
   label: source,
-  text: loadRules(source),
+  text: everyday ? loadProfile(source) : loadRules(source),
 }));
 const wanted = flags.scenario?.split(',').map((id) => id.trim());
-const scenarios = SCENARIOS.filter((s) => !wanted || wanted.includes(s.id));
+const scenarios = (everyday ? EVERYDAY_SCENARIOS : SCENARIOS).filter((s) => !wanted || wanted.includes(s.id));
 
 function loadRules(source) {
   if (source.startsWith('git:')) {
@@ -58,6 +73,20 @@ function loadRules(source) {
   }
   return readFileSync(source, 'utf8').trim();
 }
+
+// The everyday Rule is a base text plus Skill texts; a scenario picks which Skills to add.
+function loadProfile(source) {
+  const read = (file) =>
+    source.startsWith('git:')
+      ? execFileSync('git', ['show', `${source.slice(4)}:src/profiles/everyday/${file}`], { encoding: 'utf8' }).trim()
+      : readFileSync(join(source, file), 'utf8').trim();
+  return { base: read('base.md'), skills: { write: read('skills/write.md'), explain: read('skills/explain.md') } };
+}
+
+const rulesText = (variant, scenario) =>
+  typeof variant.text === 'string'
+    ? variant.text
+    : [variant.text.base, ...(scenario.skills ?? []).map((name) => variant.text.skills[name])].join('\n\n');
 
 function claude({ model, rules, prompt, cwd, tools, session }) {
   const args = [
@@ -96,6 +125,12 @@ function judge(kind, text) {
 function runScenario(scenario, model, rules) {
   const dir = mkdtempSync(join(tmpdir(), 'adda-eval-'));
   try {
+    if (scenario.check) {
+      const parsed = claude({ model, rules, prompt: scenario.prompt, cwd: dir, tools: '' });
+      if (parsed.error || parsed.isError) return { status: 'error', detail: parsed.error ?? 'claude reported an error' };
+      const verdict = scenario.check(parsed.chat, markers);
+      return { status: verdict.ok ? 'pass' : 'fail', detail: verdict.detail };
+    }
     scenario.setup?.(dir);
     const parsed = claude({ model, rules, prompt: scenario.prompt, cwd: dir, tools: scenario.tools });
     if (parsed.error || parsed.isError) return { status: 'error', detail: parsed.error ?? 'claude reported an error' };
@@ -152,7 +187,7 @@ for (const variant of variants) {
         const checkpoints = runDrift(model, variant.text);
         for (const row of rows) results[column][row.id].push(checkpoints[row.turn] ?? { status: 'error', detail: 'missing' });
       } else {
-        for (const scenario of scenarios) results[column][scenario.id].push(runScenario(scenario, model, variant.text));
+        for (const scenario of scenarios) results[column][scenario.id].push(runScenario(scenario, model, rulesText(variant, scenario)));
       }
     }
   }
@@ -164,9 +199,9 @@ const tally = (list) => {
   return `${count('pass')}/${list.length}${extras}`;
 };
 const columns = Object.keys(results);
-console.log(`\n${'scenario'.padEnd(16)}${columns.map((c) => c.padEnd(34)).join('')}`);
+console.log(`\n${'scenario'.padEnd(26)}${columns.map((c) => c.padEnd(34)).join('')}`);
 for (const row of rows) {
-  console.log(row.id.padEnd(16) + columns.map((c) => tally(results[c][row.id]).padEnd(34)).join(''));
+  console.log(row.id.padEnd(26) + columns.map((c) => tally(results[c][row.id]).padEnd(34)).join(''));
 }
 const failures = columns.flatMap((c) =>
   rows.flatMap((row) => results[c][row.id].filter((r) => r.status === 'fail').map((r) => `  ${c} / ${row.id}: ${r.detail}`)),
@@ -175,6 +210,6 @@ if (failures.length) console.log(`\nFailures:\n${[...new Set(failures)].join('\n
 
 const outDir = new URL('./results/', import.meta.url);
 mkdirSync(outDir, { recursive: true });
-const file = new URL(`${flags.drift ? 'drift' : 'leak'}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`, outDir);
+const file = new URL(`${flags.drift ? 'drift' : everyday ? 'everyday' : 'leak'}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`, outDir);
 writeFileSync(file, `${JSON.stringify(results, null, 2)}\n`);
 console.log(`\nSaved ${file.pathname}`);

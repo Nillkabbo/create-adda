@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { chatVerdict, hasBengaliScript, leakVerdict } from '../eval/detect.mjs';
+import { chatVerdict, hasBengaliScript, leakVerdict, scriptShare } from '../eval/detect.mjs';
 import { parseStream } from '../eval/stream.mjs';
 
 const markers = JSON.parse(readFileSync(new URL('./fixtures/banglish-markers.json', import.meta.url), 'utf8'));
@@ -63,4 +63,14 @@ test('parseStream collects assistant text and tool calls', () => {
 
 test('parseStream flags output with no result event as an error', () => {
   assert.equal(parseStream('').isError, true);
+});
+
+test('scriptShare is 1 for Bangla script, 0 for Latin text, and 0 for no letters', () => {
+  assert.equal(scriptShare('আমার নাম'), 1);
+  assert.equal(scriptShare('my name'), 0);
+  assert.equal(scriptShare('12 34'), 0);
+});
+
+test('scriptShare counts a Bangla sentence with a few English words as mostly Bangla', () => {
+  assert.ok(scriptShare('আপনার account এর টাকা আটকে আছে') > 0.7);
 });
