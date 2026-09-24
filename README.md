@@ -8,6 +8,8 @@
 npx create-adda
 ```
 
+![Installing Adda, then Claude Code explains a fix in Banglish and commits it in English](docs/demo.gif)
+
 The interactive setup asks which tools to configure, where the rule should live, shows every planned change, and asks once before writing anything.
 
 ## What it installs
