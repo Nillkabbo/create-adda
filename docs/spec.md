@@ -136,10 +136,6 @@ The repo is also a Claude Code marketplace (`adda`) whose plugin (`adda`) lives 
 - The marketplace checkout is sparse (`.claude-plugin` only); the plugin code comes from the release tag, so pushes to `main` never reach plugin users.
 - `test/release.test.js` fails when the manifests drift from `package.json`; CI also checks that a pushed `v*` tag matches it.
 
-## Deferred
-
-- More targets (Windsurf, etc.).
-
 ## Evaluation
 
 `npm test` covers the code. Whether models actually follow the rule is measured separately by a live eval, `npm run eval`, which runs real models through `claude -p` (costs tokens, non-deterministic, never part of CI).
@@ -150,3 +146,45 @@ The repo is also a Claude Code marketplace (`adda`) whose plugin (`adda`) lives 
 - `--rules <path|git:ref>` (repeatable) compares rule variants, `--model` and `--runs` set models and repetitions, `--drift` runs an 8-turn session and checks chat at turns 1, 4, and 8.
 - A rule that is missing from the prompt fails the chat scenarios, so a pass means the rule was followed, not that it was ignored.
 - Rule wording changes ship only when the eval shows no regression. Offline, `test/rules-lint.test.js` guards the word budget, Bengali-script use, and the example count.
+
+## Everyday profile
+
+A second Profile (see [ADR 0002](adr/0002-everyday-is-a-second-profile-in-the-same-repo.md)) for Bangla speakers who are not developers and use Web AI (ChatGPT, Claude.ai, Gemini) for daily needs. The developer Profile, its Rule (`src/rules.md`), and the CLI are unchanged.
+
+### Base rule
+
+One short Rule, always on, kept under a word budget and linted like the developer Rule.
+
+- **Chat script mirrors the user.** Bangla in, Bangla out. Banglish in, Banglish out. English in, Banglish out (the default).
+- **Natural Bangla, not translated English.** Use the common Bangla word when one exists and keep English only for words people really say in English (bank, email, form). Build sentences the way a Bangla speaker would, not word by word from English. Standard Bangla, no dialect.
+- **Register.** Respectful (`apni`) by default; switch to `tumi` when the user does.
+- **Document language follows the Recipient.** Infer it when the context makes it clear (a school application, an email to an overseas employer). Otherwise ask one short question, and say which language was chosen.
+- **Safety.** Never ask for an OTP, PIN, password, or full card number. If the user shares one, warn once in a single line. For health and legal documents, explain what they say and point the user to a doctor or lawyer; give no diagnosis or legal advice.
+
+### Skills
+
+A Skill is added on top of the base Rule only when needed. Each is a separate paste-able text.
+
+- **Likhe dao (`write`)**: letters, applications, emails, and messages. Ask at most two questions (to whom, and why). Use only facts the user gave; leave a `[placeholder]` for any name, date, or amount that is missing. Offer a shorter version.
+- **Bujhiye dao (`explain`)**: official, bank, insurance, lease, and medical documents. Reply with what it says in a few plain lines, what the user must do and by when, what to watch out for (fees, penalties), and a short list of hard terms. Say so when the text is unclear. Remind the user once to hide NID, account numbers, and OTPs before pasting.
+
+### Files and delivery
+
+- `src/profiles/everyday/base.md`, `src/profiles/everyday/skills/write.md`, `src/profiles/everyday/skills/explain.md`. File names and code stay English; the texts inside are the Rule.
+- Delivery is Print only. `scripts/build-site.mjs` generates a static Bangla-first page (`site/`, GitHub Pages) from those files, with a copy button per text and short steps for pasting into each platform. No install and no CLI.
+- Platform-native packaging (Claude Skill, Custom GPT, Gem) comes later, once the texts are stable.
+
+### Evaluation
+
+Same runner as the developer eval, with everyday scenarios and a `--rules` path to the base plus one Skill.
+
+- Deterministic checks: Bangla input gets a Bangla-script reply; Banglish and English input get no Bengali script; a Bangla document for a school is in Bengali script; an English email to an employer has none.
+- Human review: 10 to 15 golden examples under `eval/golden/`, read by a Bangla speaker for register, natural phrasing, correctness of explained terms, and the safety rule (the reply never asks for an OTP, PIN, or password). The safety rule is reviewed by a person because a keyword check cannot tell a request from a warning. Repeated when a Rule or Skill changes. No LLM judge.
+
+## Deferred
+
+- More targets (Windsurf, etc.).
+- More everyday Skills: jobs (CV, interviews), study, small business, government services, health and legal explanations.
+- Dialects, voice input, and photos of documents.
+- Reaching everyday users through schools, NGOs, and training centres.
+- Developer Profile: a rule for quoting Bangla words in chat (Latin transliteration), with an eval scenario.
