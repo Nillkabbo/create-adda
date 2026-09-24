@@ -191,6 +191,7 @@ Same runner as the developer eval, with everyday scenarios and a `--rules` path 
 - A missing or invalid config means defaults, so preferences can never stop the rules from loading.
 - CLI: `--script` and `--tone` validate and save immediately; given without `--target` or `--remove` they only save and print how to apply them. `--prefs` prints the saved values and paths. The interactive setup asks for script and tone and saves them only after the plan is applied.
 - Every install writes the rendered rules; the plugin's SessionStart hook and `/adda on` render them at runtime, so the plugin follows preference changes without a reinstall.
+- Refresh (`buildRefreshPlan` in `src/plan.js`): after `--script`/`--tone` save a value without `--target`, and on `--prefs` (the sync point after editing `custom.md`), the CLI compares every rule already installed at a global path or in the current repo's project scope with what an install would write now, and rewrites the ones that differ. Any difference counts, so an older Rule version is refreshed too. It never installs into a tool that has no Adda rule. The plan is shown and confirmed once; `--yes` skips the confirm, and without a TTY and without `--yes` it only lists. Project installs in other repos and pasted text (Cursor User Rules, Web AI) cannot be checked, and the output says so. No install registry and no change to the Block markers.
 
 ## Deferred
 

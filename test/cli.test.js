@@ -289,14 +289,41 @@ test('--script and --tone are saved and applied, and later runs reuse them', () 
   assert.match(read(join(box.home, '.codex', 'AGENTS.md')), /"apni"/);
 });
 
-test('preference flags without --target only save, and say how to apply them', () => {
+test('preference flags without --target save, and report nothing to refresh on a clean machine', () => {
   const box = sandbox();
   const { code, stdout } = run(['--tone', 'formal'], box);
 
   assert.equal(code, 0);
   assert.match(stdout, /tone: formal/);
-  assert.match(stdout, /Re-run with --target/);
+  assert.match(stdout, /Every installed rule here is up to date/);
   assert.equal(exists(join(box.repo, 'CLAUDE.local.md')), false);
+});
+
+test('a preference change lists out-of-date rules and needs --yes to refresh them', () => {
+  const box = sandbox();
+  run(['--target', 'codex', '--yes'], box);
+  const before = read(join(box.home, '.codex', 'AGENTS.md'));
+
+  const listed = run(['--tone', 'formal'], box);
+  assert.equal(listed.code, 0);
+  assert.match(listed.stdout, /Out-of-date rules:\n\s+update ~\/\.codex\/AGENTS\.md/);
+  assert.match(listed.stdout, /Pass --yes to refresh them/);
+  assert.equal(read(join(box.home, '.codex', 'AGENTS.md')), before);
+
+  const refreshed = run(['--tone', 'formal', '--yes'], box);
+  assert.equal(refreshed.code, 0);
+  assert.match(read(join(box.home, '.codex', 'AGENTS.md')), /"apni"/);
+});
+
+test('--prefs refreshes rules after custom.md was edited by hand', () => {
+  const box = sandbox();
+  run(['--target', 'codex', '--yes'], box);
+  write(join(box.home, '.config', 'adda', 'custom.md'), '- Call me "bhai".\n');
+
+  const { code, stdout } = run(['--prefs', '--yes'], box);
+  assert.equal(code, 0);
+  assert.match(stdout, /update ~\/\.codex\/AGENTS\.md/);
+  assert.match(read(join(box.home, '.codex', 'AGENTS.md')), /Call me "bhai"/);
 });
 
 test('--prefs shows the saved preferences and where they live', () => {
@@ -309,6 +336,7 @@ test('--prefs shows the saved preferences and where they live', () => {
   assert.match(stdout, /tone: casual/);
   assert.match(stdout, /custom\.md/);
   assert.match(stdout, /Keep replies short/);
+  assert.match(stdout, /after editing it, run npx create-adda --prefs/);
 });
 
 test('an unknown --script value is rejected', () => {

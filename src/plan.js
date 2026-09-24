@@ -14,6 +14,7 @@ import {
   upsertBlock,
   removeBlock,
   blockCreatedFile,
+  hasBlock,
   addGitignoreLines,
   removeGitignoreLines,
 } from './blocks.js';
@@ -155,6 +156,38 @@ function gitignoreActions(project, entries, remove) {
 }
 
 const SCOPES = ['project', 'global', 'plugin'];
+
+// Rewrites every Adda rule already installed here (global paths and the current repo) whose
+// content differs from what an install would write now, e.g. after a preference change. It
+// never installs anywhere new. The plugin renders at runtime, and pasted text cannot be read.
+export function buildRefreshPlan(env) {
+  let project = null;
+  try {
+    project = resolveProjectDir(env);
+  } catch {
+    // cwd is $HOME: only the global scope applies.
+  }
+  const body = renderRules(rulesBody(), env.preferences).trim();
+  const actions = [];
+  for (const target of Object.values(TARGETS)) {
+    for (const scope of ['project', 'global']) {
+      const spec = target[scope];
+      if (!spec || !['block', 'file'].includes(spec.kind) || (scope === 'project' && !project)) continue;
+      const path = spec.path(scope === 'project' ? project.dir : env);
+      const current = readOrEmpty(path);
+      const installed = spec.kind === 'block' ? hasBlock(current) : existsSync(path);
+      if (!installed) continue;
+      const [write] = installActions(spec, path, body, {}, env);
+      if (write.content !== current) actions.push(write);
+    }
+  }
+  const warnings = [
+    'Installs in other projects are not checked: run this there to refresh them.',
+    'Cursor User Rules and Web AI prompts are pasted by hand: paste the new text again ' +
+      '(npx create-adda --target cursor --scope global, or --print web).',
+  ];
+  return { actions, warnings };
+}
 
 export function buildPlan(options, env) {
   const actions = [];

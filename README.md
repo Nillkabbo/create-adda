@@ -79,7 +79,7 @@ Adda's default is Banglish in Latin letters with a casual peer tone. You can cha
 ```bash
 npx create-adda --script bengali   # chat in Bangla script instead of Latin letters
 npx create-adda --tone formal      # "apni" instead of "tumi"
-npx create-adda --prefs            # show what is saved and where
+npx create-adda --prefs            # show what is saved, and refresh installed rules to match
 ```
 
 Anything else goes in your own rule file, `~/.config/adda/custom.md` (or `$XDG_CONFIG_HOME/adda/custom.md`). For example:
@@ -91,7 +91,7 @@ Anything else goes in your own rule file, `~/.config/adda/custom.md` (or `$XDG_C
 
 Your preferences are added after Adda's rules and win wherever the two conflict. Shipped output (code, commits, docs) always stays English.
 
-The Claude Code plugin reads them at the start of every session. For the other tools, re-run the install (for example `npx create-adda --target codex,gemini,hermes --yes`) to refresh their blocks. The interactive setup also asks for script and tone.
+The Claude Code plugin reads them at the start of every session. For the other tools, `--script` and `--tone` list the rules already installed on your machine (global ones, and the project you run it in) that no longer match, and refresh them once you confirm (`--yes` skips the question). After editing `custom.md` by hand, run `npx create-adda --prefs` to do the same. Project installs in other repos are refreshed by running it there, and text you pasted by hand (Cursor User Rules, Web AI) needs pasting again. The interactive setup also asks for script and tone.
 
 ## Options
 
@@ -105,7 +105,7 @@ The Claude Code plugin reads them at the start of every session. For the other t
 | `--out <path>` | Write the web prompt to a file instead of printing it |
 | `--script latin\|bengali` | Chat script, saved for later runs (default `latin`) |
 | `--tone casual\|formal` | Chat tone, saved for later runs (default `casual`; `formal` uses "apni") |
-| `--prefs` | Show your saved preferences and where they live |
+| `--prefs` | Show your saved preferences and refresh installed rules that no longer match them |
 | `-h`, `--help` / `-v`, `--version` | Usage / version |
 
 Examples:

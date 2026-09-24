@@ -21,6 +21,10 @@ function findBlock(text) {
 const startMarker = ({ created, noEol }) =>
   `<!-- adda:start${created ? ' created-file' : ''}${noEol ? ' no-eol' : ''} -->`;
 
+export function hasBlock(text) {
+  return findBlock(text) !== null;
+}
+
 export function blockCreatedFile(text) {
   return Boolean(findBlock(text)?.created);
 }

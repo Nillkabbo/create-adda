@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { parseArgs, styleText } from 'node:util';
 import { TARGETS } from '../src/targets.js';
-import { buildPlan, applyPlan, findMarketplace, isPluginInstalled } from '../src/plan.js';
+import { buildPlan, buildRefreshPlan, applyPlan, findMarketplace, isPluginInstalled } from '../src/plan.js';
 import { onPath } from '../src/paths.js';
 import { CHOICES, configDir, loadPreferences, savePreferences } from '../src/preferences.mjs';
 
@@ -26,7 +26,7 @@ Options:
   --out <path>            Write the web prompt to a file instead of printing it
   --script latin|bengali  Chat script (saved; default latin). Shipped output stays English
   --tone casual|formal    Chat tone (saved; default casual). formal uses "apni"
-  --prefs                 Show your saved preferences and where they live
+  --prefs                 Show your saved preferences and refresh installed rules to match
   -h, --help              Show this help
   -v, --version           Show the version
 `;
@@ -168,6 +168,32 @@ function printPreferences(dir) {
   const custom = prefs.custom.trim();
   console.log(`  custom rules (${join(dir, 'custom.md')}): ${custom ? '' : 'none'}`);
   if (custom) console.log(custom.replace(/^/gm, '    '));
+  console.log('  (after editing it, run npx create-adda --prefs to refresh installed rules)');
+}
+
+// After a preference change, and on --prefs (the sync point after editing custom.md), rewrite the
+// rules already installed here to match. The plugin renders them itself at session start.
+async function refreshInstalled(env, prefsDir, flags) {
+  printPreferences(prefsDir);
+  const plan = buildRefreshPlan(env);
+  const notes = () => plan.warnings.forEach((warning) => console.log(paint('yellow', `! ${warning}`)));
+  if (!plan.actions.length) {
+    console.log('\nEvery installed rule here is up to date (the Claude Code plugin updates itself).');
+    return notes();
+  }
+  console.log(paint('bold', '\nOut-of-date rules:'));
+  plan.actions.forEach((action) => console.log(`  ${describe(action, env)}`));
+  if (!flags.yes) {
+    if (!(process.stdin.isTTY && process.stdout.isTTY)) {
+      console.log('\nPass --yes to refresh them.');
+      return notes();
+    }
+    const { confirm } = await import('@inquirer/prompts');
+    if (!(await confirm({ message: 'Refresh them?', default: true }))) return void console.log('Cancelled.');
+  }
+  applyPlan(plan);
+  notes();
+  console.log(paint('green', '\nDone.'));
 }
 
 async function main() {
@@ -194,12 +220,10 @@ async function main() {
     changes[key] = flags[key];
   }
   if (Object.keys(changes).length) savePreferences(prefsDir, changes);
-  if (flags.prefs || (Object.keys(changes).length && !flags.target && !flags.remove)) {
-    printPreferences(prefsDir);
-    if (!flags.prefs) console.log('\nRe-run with --target to apply them (the Claude Code plugin picks them up on its own).');
-    return;
-  }
   env.preferences = loadPreferences(prefsDir);
+  if (flags.prefs || (Object.keys(changes).length && !flags.target && !flags.remove)) {
+    return refreshInstalled(env, prefsDir, flags);
+  }
 
   if (flags.print !== undefined) {
     if (flags.print !== 'web') throw new UsageError('--print only supports "web".');
