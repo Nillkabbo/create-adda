@@ -1,0 +1,3 @@
+# Everyday is a second Profile in the same repo, not a separate product
+
+Adda started for developers: Chat in Banglish, Output in English, Bengali script never. Everyday Bangla speakers on Web AI need two of those inverted: Chat mirrors the user's script (Bengali script is fine), and Output takes the Recipient's language instead of always English. We add the everyday Profile to this repo rather than forking a second one, so the eval harness, the base safety rules (never ask for an OTP, PIN, or password), and the glossary stay single-sourced. The cost is that the repo and README still read as a developer tool, so the public page lives apart from them; the developer Profile and the CLI stay untouched.
