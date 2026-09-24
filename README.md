@@ -20,6 +20,8 @@ The interactive setup asks which tools to configure, where the rule should live,
 | Gemini CLI | — | `~/.gemini/GEMINI.md` |
 | Web AI (ChatGPT, Claude.ai, Gemini) | — | Prints a prompt to paste into custom instructions |
 
+> **Cursor (limited):** the rule installs and Cursor loads it, but Cursor's Auto model (the only one on free plans) didn't follow it in our tests and kept replying in English. Named models on paid plans are untested.
+
 The rule is personal. Project files are gitignored and never pushed onto teammates.
 
 Shared files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) are never overwritten. The rule goes inside a marked block and the rest of the file is left untouched:
