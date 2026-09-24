@@ -55,7 +55,7 @@ function resolveProjectDir(env) {
 // Whether an already added marketplace (an entry from `claude plugin marketplace list --json`)
 // comes from `source`.
 function sameMarketplaceSource(existing, source, isLocal, cwd) {
-  if (isLocal) return existing.source === 'directory' && samePath(existing.path, resolve(cwd, source));
+  if (isLocal) return existing.source === 'directory' && samePath(resolve(cwd, existing.path), resolve(cwd, source));
   return existing.source === 'github' && existing.repo?.toLowerCase() === source.toLowerCase();
 }
 
