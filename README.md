@@ -18,13 +18,14 @@ The interactive setup asks which tools to configure, where the rule should live,
 | Cursor | `.cursor/rules/adda.mdc` at the git root (gitignored) | Prints text to paste into Settings → Rules → User Rules |
 | Codex CLI | — | `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`) |
 | Gemini CLI | — | `~/.gemini/GEMINI.md` |
+| Hermes Agent | — | `$HERMES_HOME/SOUL.md` (default `~/.hermes/SOUL.md`) |
 | Web AI (ChatGPT, Claude.ai, Gemini) | — | Prints a prompt to paste into custom instructions |
 
 > **Cursor (limited):** the rule installs and Cursor loads it, but Cursor's Auto model (the only one on free plans) didn't follow it in our tests and kept replying in English. Named models on paid plans are untested.
 >
 > **Web AI (ChatGPT tested):** ChatGPT followed the prompt when it was pasted as the first message of a chat: Banglish replies, English code, English on request. Pasting it into Custom Instructions (the intended setup) and the Claude.ai and Gemini web apps are untested.
 >
-> Claude Code, Codex CLI, and Gemini CLI are tested live: they chat in Banglish while files and commits stay in English.
+> Claude Code, Codex CLI, Gemini CLI, and Hermes Agent are tested live: they chat in Banglish while files and commits stay English.
 
 The rule is personal. Project files are gitignored and never pushed onto teammates.
 
@@ -70,7 +71,7 @@ Full text: [`src/rules.md`](src/rules.md).
 
 | Flag | Meaning |
 |---|---|
-| `--target <ids>` | Comma-separated: `claude`, `cursor`, `codex`, `gemini`, `web` |
+| `--target <ids>` | Comma-separated: `claude`, `cursor`, `codex`, `gemini`, `hermes`, `web` |
 | `--scope project\|global\|plugin` | Where the rule lives. `plugin` is Claude Code only. Default: `plugin` for Claude when `claude` is installed, otherwise `project` |
 | `-y`, `--yes` | Skip the confirmation prompt |
 | `--remove` | Uninstall from the chosen targets |

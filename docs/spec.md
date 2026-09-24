@@ -17,11 +17,12 @@ Targets live in a registry. Each target is one object describing its label, supp
 | Cursor | `<git-root>/.cursor/rules/adda.mdc` (owned file, `alwaysApply: true`), gitignored | print paste instructions for Settings → Rules → User Rules |
 | Codex CLI | — | `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`), marker block |
 | Gemini CLI | — | `~/.gemini/GEMINI.md`, marker block |
+| Hermes Agent | — | `$HERMES_HOME/SOUL.md` (default `~/.hermes/SOUL.md`), marker block; the file must already exist (run Hermes once to seed it) so the install never replaces the built-in identity |
 | Web (ChatGPT / Claude.ai / Gems) | — | print prompt to stdout; `--out <path>` writes a file instead |
 
 Claude Code also has a third scope, `plugin`, which is its default when the `claude` CLI is installed (see [ADR 0001](adr/0001-plugin-is-the-default-claude-code-delivery.md) and the plugin section below).
 
-Excluded on purpose: `.cursorrules` (deprecated), project `AGENTS.md` / `GEMINI.md` / `.github/copilot-instructions.md` (shared, committed files).
+Excluded on purpose: `.cursorrules` (deprecated), project `AGENTS.md` / `GEMINI.md` / `.github/copilot-instructions.md` (shared, committed files). Hermes has no project scope: it loads exactly one project context file per session, so a dedicated Adda file would shadow the repo's own `AGENTS.md`; its global slot (`SOUL.md`, identity, slot #1 of the system prompt) is loaded every session on every surface and is additive to nothing.
 
 ## Rule content
 
@@ -65,7 +66,7 @@ Flags:
 
 | Flag | Meaning |
 |---|---|
-| `--target <ids>` | Comma-separated: `claude,cursor,codex,gemini,web` |
+| `--target <ids>` | Comma-separated: `claude,cursor,codex,gemini,hermes,web` |
 | `--scope project\|global\|plugin` | Scope for targets that support it (`plugin` is Claude Code only). Default: `plugin` for Claude when the `claude` CLI is on `PATH`, otherwise `project`; global-only targets always use `global` |
 | `--yes`, `-y` | Skip the confirm |
 | `--remove` | Uninstall instead of install. Without `--scope`, removes the target from every scope it can live in |
@@ -75,7 +76,7 @@ Flags:
 
 No TTY and no `--target` → exit with a usage error (code 1) instead of hanging. No TTY and no `--yes` → exit with a usage error instead of applying unconfirmed changes.
 
-Environment variables: `ADDA_MARKETPLACE` (plugin marketplace source override), `CODEX_HOME` (Codex config directory), `NO_COLOR` (disable colors).
+Environment variables: `ADDA_MARKETPLACE` (plugin marketplace source override), `CODEX_HOME` (Codex config directory), `HERMES_HOME` (Hermes config directory), `NO_COLOR` (disable colors).
 
 ## Architecture
 

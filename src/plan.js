@@ -162,7 +162,10 @@ export function buildPlan(options, env) {
       const spec = TARGETS[id][scope];
       const root = scope === 'project' ? project.dir : env.home;
       const path = spec.path?.(scope === 'project' ? project.dir : env);
-      if (scope === 'global' && path && !options.remove) assertHomeExists(path, env.home);
+      if (scope === 'global' && path && !options.remove) {
+        assertHomeExists(path, env.home);
+        if (spec.requireExisting && !existsSync(path)) throw new Error(spec.missingFileError(path));
+      }
       actions.push(
         ...(options.remove
           ? removeActions(spec, path, root)

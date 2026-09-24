@@ -96,6 +96,47 @@ test('codex and gemini are global-only, even when project scope is requested', (
   assert.equal(exists(join(repo, '.gitignore')), false);
 });
 
+test('hermes appends a block to an existing SOUL.md without touching the persona', () => {
+  const { home, repo, env } = sandbox();
+  write(join(home, '.hermes', 'SOUL.md'), '# Personality\n\nDirect, no filler.\n');
+  install(env, { targets: ['hermes'], scopes: { hermes: 'project' } }); // project is ignored: global-only
+
+  const text = read(join(home, '.hermes', 'SOUL.md'));
+  assert.ok(text.startsWith('# Personality\n\nDirect, no filler.\n\n' + START));
+  assert.match(text, /Talk to the developer in Banglish/);
+  assert.equal(exists(join(repo, 'SOUL.md')), false);
+  assert.equal(exists(join(repo, '.gitignore')), false);
+});
+
+test('hermes honours HERMES_HOME over the default ~/.hermes', () => {
+  const { root, home, env } = sandbox();
+  const hermesHome = join(root, 'custom-hermes');
+  write(join(hermesHome, 'SOUL.md'), '# Persona\n');
+  install({ ...env, hermesHome }, { targets: ['hermes'] });
+
+  assert.match(read(join(hermesHome, 'SOUL.md')), /Talk to the developer in Banglish/);
+  assert.equal(exists(join(home, '.hermes')), false);
+});
+
+test('hermes refuses to install when SOUL.md does not exist yet', () => {
+  const { home } = sandbox();
+  assert.throws(
+    () => buildPlan({ targets: ['hermes'] }, { cwd: home, home, codexHome: join(home, '.codex') }),
+    /SOUL\.md not found\. Run Hermes once/,
+  );
+  assert.equal(exists(join(home, '.hermes')), false);
+});
+
+test('hermes remove strips the block and keeps the persona', () => {
+  const { home, env } = sandbox();
+  write(join(home, '.hermes', 'SOUL.md'), '# Personality\n\nDirect, no filler.\n');
+  const options = { targets: ['hermes'] };
+  install(env, options);
+  install(env, { ...options, remove: true });
+
+  assert.equal(read(join(home, '.hermes', 'SOUL.md')), '# Personality\n\nDirect, no filler.\n');
+});
+
 test('web target prints a paste-ready prompt with a role header', () => {
   const { env } = sandbox();
   const plan = install(env, { targets: ['web'] });

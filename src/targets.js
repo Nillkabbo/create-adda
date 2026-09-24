@@ -57,6 +57,19 @@ export const TARGETS = {
     detect: (env) => join(env.home, '.gemini'),
     global: { kind: 'block', path: (env) => join(env.home, '.gemini', 'GEMINI.md') },
   },
+  hermes: {
+    label: 'Hermes Agent',
+    detect: (env) => env.hermesHome ?? join(env.home, '.hermes'),
+    global: {
+      kind: 'block',
+      path: (env) => join(env.hermesHome ?? join(env.home, '.hermes'), 'SOUL.md'),
+      // Hermes seeds SOUL.md itself; creating it here would replace the built-in identity
+      // wholesale (a missing SOUL.md is what triggers that fallback).
+      requireExisting: true,
+      missingFileError: (path) =>
+        `${path} not found. Run Hermes once so it seeds its SOUL.md, then re-run this tool.`,
+    },
+  },
   web: {
     label: 'Web AI (ChatGPT, Claude.ai, Gemini)',
     global: {

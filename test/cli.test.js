@@ -44,6 +44,7 @@ function run(args, box, { withClaude = false, env = {} } = {}) {
       HOME: box.home,
       USERPROFILE: box.home,
       CODEX_HOME: join(box.home, '.codex'),
+      HERMES_HOME: join(box.home, '.hermes'),
       PATH: path,
       NO_COLOR: '1',
       FAKE_CLAUDE_LOG: join(box.root, 'claude.log'),
@@ -103,6 +104,30 @@ test('--remove uninstalls what a previous run installed', () => {
   assert.match(stdout, /Planned removal/);
   assert.equal(exists(join(box.home, '.claude', 'CLAUDE.md')), false);
   assert.equal(exists(join(box.home, '.codex', 'AGENTS.md')), false);
+});
+
+test('hermes installs into an existing SOUL.md and removes cleanly', () => {
+  const box = sandbox();
+  write(join(box.home, '.hermes', 'SOUL.md'), '# Personality\n\nDirect, no filler.\n');
+
+  const install = run(['--target', 'hermes', '--scope', 'global', '--yes'], box);
+  assert.equal(install.code, 0);
+  const text = read(join(box.home, '.hermes', 'SOUL.md'));
+  assert.ok(text.startsWith('# Personality'));
+  assert.match(text, /Talk to the developer in Banglish/);
+
+  const remove = run(['--remove', '--target', 'hermes', '--scope', 'global', '--yes'], box);
+  assert.equal(remove.code, 0);
+  assert.equal(read(join(box.home, '.hermes', 'SOUL.md')), '# Personality\n\nDirect, no filler.\n');
+});
+
+test('hermes without a seeded SOUL.md fails with a pointer to run Hermes first', () => {
+  const box = sandbox();
+  const { code, stderr } = run(['--target', 'hermes', '--scope', 'global', '--yes'], box);
+
+  assert.equal(code, 1);
+  assert.match(stderr, /SOUL\.md not found\. Run Hermes once/);
+  assert.equal(exists(join(box.home, '.hermes')), false);
 });
 
 test('unknown targets are rejected', () => {

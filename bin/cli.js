@@ -141,7 +141,12 @@ async function main() {
   if (flags.version) return void console.log(pkg.version);
 
   const home = homedir();
-  const env = { cwd: process.cwd(), home, codexHome: process.env.CODEX_HOME || join(home, '.codex') };
+  const env = {
+    cwd: process.cwd(),
+    home,
+    codexHome: process.env.CODEX_HOME || join(home, '.codex'),
+    hermesHome: process.env.HERMES_HOME || join(home, '.hermes'),
+  };
 
   if (flags.print !== undefined) {
     if (flags.print !== 'web') throw new UsageError('--print only supports "web".');
