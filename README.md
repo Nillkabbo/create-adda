@@ -22,7 +22,7 @@ The interactive setup asks which tools to configure, where the rule should live,
 
 > **Cursor (limited):** the rule installs and Cursor loads it, but Cursor's Auto model (the only one on free plans) didn't follow it in our tests and kept replying in English. Named models on paid plans are untested.
 >
-> **Web AI (untested):** the prompt prints correctly, but we haven't checked how ChatGPT, Claude.ai, or Gemini follow it once pasted into custom instructions.
+> **Web AI (ChatGPT tested):** ChatGPT followed the prompt when it was pasted as the first message of a chat: Banglish replies, English code, English on request. Pasting it into Custom Instructions (the intended setup) and the Claude.ai and Gemini web apps are untested.
 >
 > Claude Code, Codex CLI, and Gemini CLI are tested live: they chat in Banglish while files and commits stay in English.
 
