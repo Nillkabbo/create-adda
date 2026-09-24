@@ -306,7 +306,7 @@ test('a preference change lists out-of-date rules and needs --yes to refresh the
 
   const listed = run(['--tone', 'formal'], box);
   assert.equal(listed.code, 0);
-  assert.match(listed.stdout, /Out-of-date rules:\n\s+update ~\/\.codex\/AGENTS\.md/);
+  assert.match(listed.stdout, /Out-of-date rules:\n\s+update ~[\\/]\.codex[\\/]AGENTS\.md/);
   assert.match(listed.stdout, /Pass --yes to refresh them/);
   assert.equal(read(join(box.home, '.codex', 'AGENTS.md')), before);
 
@@ -322,7 +322,7 @@ test('--prefs refreshes rules after custom.md was edited by hand', () => {
 
   const { code, stdout } = run(['--prefs', '--yes'], box);
   assert.equal(code, 0);
-  assert.match(stdout, /update ~\/\.codex\/AGENTS\.md/);
+  assert.match(stdout, /update ~[\\/]\.codex[\\/]AGENTS\.md/);
   assert.match(read(join(box.home, '.codex', 'AGENTS.md')), /Call me "bhai"/);
 });
 
