@@ -1,6 +1,6 @@
 {
   "name": "create-adda",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Adda in Banglish, ship in English: make your AI coding tools chat in Banglish while code, commits, and docs stay in English.",
   "type": "module",
   "bin": {
