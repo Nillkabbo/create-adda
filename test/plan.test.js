@@ -202,3 +202,21 @@ test('remove keeps a shared file that existed before install, even when it was e
 
   assert.equal(read(join(home, '.gemini', 'GEMINI.md')), '');
 });
+
+test('project scope works when HOME points at a folder that does not exist', () => {
+  const { root, repo, env } = sandbox();
+  install({ ...env, home: join(root, 'missing-home') }, { targets: ['claude'], scopes: { claude: 'project' } });
+
+  assert.ok(read(join(repo, 'CLAUDE.local.md')).startsWith(START));
+});
+
+test('global scope with a missing HOME fails with a clear message and writes nothing', () => {
+  const { root, env } = sandbox();
+  const home = join(root, 'missing-home');
+
+  assert.throws(
+    () => buildPlan({ targets: ['codex'] }, { ...env, home, codexHome: undefined }),
+    /Home directory not found: .*missing-home.*HOME/,
+  );
+  assert.equal(exists(home), false);
+});

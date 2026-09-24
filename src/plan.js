@@ -28,7 +28,15 @@ import { findExecutable, findGitRoot } from './paths.js';
 
 const readOrEmpty = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : '');
 // Compare real paths: cwd is already resolved, while $HOME may go through a symlink.
-const samePath = (a, b) => realpathSync(a) === realpathSync(b);
+// A path that does not exist cannot be a symlink, so compare it as written.
+const real = (path) => (existsSync(path) ? realpathSync(path) : resolve(path));
+const samePath = (a, b) => real(a) === real(b);
+
+function assertHomeExists(path, home) {
+  if (path.startsWith(resolve(home)) && !existsSync(home)) {
+    throw new Error(`Home directory not found: ${home}. Check that $HOME (or %USERPROFILE%) is set correctly.`);
+  }
+}
 
 function resolveProjectDir(env) {
   const gitRoot = findGitRoot(env.cwd);
@@ -154,6 +162,7 @@ export function buildPlan(options, env) {
       const spec = TARGETS[id][scope];
       const root = scope === 'project' ? project.dir : env.home;
       const path = spec.path?.(scope === 'project' ? project.dir : env);
+      if (scope === 'global' && path && !options.remove) assertHomeExists(path, env.home);
       actions.push(
         ...(options.remove
           ? removeActions(spec, path, root)
