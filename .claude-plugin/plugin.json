@@ -1,6 +1,6 @@
 {
   "name": "adda",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Talk to Claude in Banglish while everything it ships stays in English. Toggle with /adda on|off|status.",
   "author": {
     "name": "MD. RAKIBUL HASAN",
