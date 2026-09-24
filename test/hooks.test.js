@@ -12,7 +12,7 @@ const statePath = (home) => join(home, '.claude', 'adda.json');
 function runHook(name, event, home) {
   const result = spawnSync(process.execPath, [hook(name)], {
     input: JSON.stringify(event),
-    env: { ...process.env, HOME: home },
+    env: { ...process.env, HOME: home, USERPROFILE: home },
     encoding: 'utf8',
   });
   return { code: result.status, stdout: result.stdout, stderr: result.stderr };

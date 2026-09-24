@@ -2,31 +2,44 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
 import { chmodSync } from 'node:fs';
 import { sandbox, read, exists, write } from './helpers.js';
 
 const CLI = fileURLToPath(new URL('../bin/cli.js', import.meta.url));
 
-// A stand-in `claude` that logs its arguments; FAKE_CLAUDE_EXIT makes it fail.
+// A stand-in `claude` that logs its arguments. FAKE_CLAUDE_EXIT makes it fail, and
+// FAKE_CLAUDE_PLUGINS is what `claude plugin list --json` prints. On Windows it is reached
+// through a .cmd shim, like the real npm-installed claude.
 function fakeClaude(box) {
   const bin = join(box.root, 'bin');
   write(
-    join(bin, 'claude'),
-    '#!/bin/sh\necho "claude $*" >> "$FAKE_CLAUDE_LOG"\n[ -n "$FAKE_CLAUDE_EXIT" ] && echo "boom" >&2\nexit ${FAKE_CLAUDE_EXIT:-0}\n',
+    join(bin, 'fake-claude.mjs'),
+    `import { appendFileSync } from 'node:fs';
+const args = process.argv.slice(2).join(' ');
+appendFileSync(process.env.FAKE_CLAUDE_LOG, 'claude ' + args + '\\n');
+if (args === 'plugin list --json') process.stdout.write(process.env.FAKE_CLAUDE_PLUGINS ?? '[]');
+if (process.env.FAKE_CLAUDE_EXIT) process.stderr.write('boom');
+process.exit(Number(process.env.FAKE_CLAUDE_EXIT ?? 0));
+`,
   );
+  write(join(bin, 'claude'), `#!/usr/bin/env node\nimport('./fake-claude.mjs');\n`);
   chmodSync(join(bin, 'claude'), 0o755);
+  write(join(bin, 'claude.cmd'), '@node "%~dp0fake-claude.mjs" %*\r\n');
   return bin;
 }
 
 // stdin is a pipe, so the CLI always sees a non-TTY session here. PATH holds only node (and the
 // fake claude when `withClaude` is set), so tests can never reach a real `claude` binary.
+// HOME and USERPROFILE both point at the sandbox: os.homedir() reads USERPROFILE on Windows.
 function run(args, box, { withClaude = false, env = {} } = {}) {
-  const path = [withClaude && fakeClaude(box), dirname(process.execPath)].filter(Boolean).join(':');
+  const path = [withClaude && fakeClaude(box), dirname(process.execPath)].filter(Boolean).join(delimiter);
   const result = spawnSync(process.execPath, [CLI, ...args], {
     cwd: box.cwd,
     env: {
+      ...(process.env.SystemRoot && { SystemRoot: process.env.SystemRoot }),
       HOME: box.home,
+      USERPROFILE: box.home,
       CODEX_HOME: join(box.home, '.codex'),
       PATH: path,
       NO_COLOR: '1',
@@ -172,4 +185,31 @@ test('a failing claude command exits 1 and tells the user to run it by hand', ()
   assert.equal(code, 1);
   assert.match(stderr, /Command failed: claude plugin marketplace add/);
   assert.match(stderr, /Run it by hand/);
+});
+
+test('switching Claude to project scope uninstalls the installed plugin', () => {
+  const box = sandbox();
+  const { code } = run(['--target', 'claude', '--scope', 'project', '--yes'], box, {
+    withClaude: true,
+    env: { FAKE_CLAUDE_PLUGINS: '[{"id":"adda@adda","enabled":true},{"id":"other@x","enabled":true}]' },
+  });
+
+  assert.equal(code, 0);
+  assert.equal(claudeLog(box), 'claude plugin list --json\nclaude plugin uninstall adda@adda\n');
+  assert.ok(exists(join(box.repo, 'CLAUDE.local.md')));
+});
+
+test('--remove without --scope removes Claude from every scope', () => {
+  const box = sandbox();
+  run(['--target', 'claude', '--scope', 'project', '--yes'], box);
+  run(['--target', 'claude', '--scope', 'global', '--yes'], box);
+  const { code } = run(['--remove', '--target', 'claude', '--yes'], box, {
+    withClaude: true,
+    env: { FAKE_CLAUDE_PLUGINS: '[{"id":"adda@adda","enabled":true}]' },
+  });
+
+  assert.equal(code, 0);
+  assert.equal(exists(join(box.repo, 'CLAUDE.local.md')), false);
+  assert.equal(exists(join(box.home, '.claude', 'CLAUDE.md')), false);
+  assert.equal(claudeLog(box), 'claude plugin list --json\nclaude plugin uninstall adda@adda\n');
 });

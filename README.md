@@ -88,11 +88,15 @@ npx create-adda --remove --target claude,cursor --scope project --yes
 npx create-adda --remove --target claude --scope plugin --yes
 ```
 
+`--remove` without `--scope` removes the rule from every place it can live: for Claude Code that is the project block, the global block, and the plugin.
+
+Choosing a Claude Code scope moves the rule there: installing the plugin removes any Claude blocks, and installing a block uninstalls the plugin, so the rules never load twice.
+
 Without a terminal (CI, scripts), `--target` and `--yes` are required.
 
 ## Requirements
 
-Node.js 20.17 or newer.
+Node.js 20.17 or newer, on macOS, Linux, or Windows.
 
 ## License
 

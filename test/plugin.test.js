@@ -75,3 +75,52 @@ test('a local directory marketplace is added without --sparse, which only git so
 
   assert.equal(runner.calls[0], 'claude plugin marketplace add /work/create-adda');
 });
+
+test('a Claude block install uninstalls an installed plugin, so the rules are not loaded twice', () => {
+  const { repo, env } = sandbox();
+  const runner = fakeRunner();
+  applyPlan(buildPlan({ targets: ['claude'], scopes: { claude: 'project' } }, { ...env, pluginInstalled: true }), {
+    run: runner.run,
+  });
+
+  assert.ok(exists(join(repo, 'CLAUDE.local.md')));
+  assert.deepEqual(runner.calls, ['claude plugin uninstall adda@adda']);
+});
+
+test('a Claude block install leaves the plugin alone when it is not installed', () => {
+  const { env } = sandbox();
+  const plan = buildPlan({ targets: ['claude'], scopes: { claude: 'global' } }, { ...env, pluginInstalled: false });
+  assert.deepEqual(plan.actions.map((a) => a.type), ['write']);
+});
+
+test('removing Claude at every scope clears both blocks, the gitignore line, and the plugin', () => {
+  const { home, repo, env } = sandbox();
+  write(join(home, '.claude', 'CLAUDE.md'), '# Server notes\n');
+  applyPlan(buildPlan({ targets: ['claude'], scopes: { claude: 'project' } }, env));
+  applyPlan(buildPlan({ targets: ['claude'], scopes: { claude: 'global' } }, env));
+  const runner = fakeRunner();
+
+  applyPlan(buildPlan({ targets: ['claude'], scopes: { claude: 'all' }, remove: true }, { ...env, pluginInstalled: true }), {
+    run: runner.run,
+  });
+
+  assert.equal(exists(join(repo, 'CLAUDE.local.md')), false);
+  assert.equal(exists(join(repo, '.gitignore')), false);
+  assert.equal(read(join(home, '.claude', 'CLAUDE.md')), '# Server notes\n');
+  assert.deepEqual(runner.calls, ['claude plugin uninstall adda@adda']);
+});
+
+test('removing at every scope from the home directory skips the project and keeps going', () => {
+  const { home } = sandbox();
+  write(join(home, '.claude', 'CLAUDE.md'), '<!-- adda:start -->\nRule.\n<!-- adda:end -->\n# Notes\n');
+  const plan = buildPlan(
+    { targets: ['claude', 'cursor'], scopes: { claude: 'all', cursor: 'all' }, remove: true },
+    { cwd: home, home, pluginInstalled: false },
+  );
+  applyPlan(plan);
+
+  assert.equal(read(join(home, '.claude', 'CLAUDE.md')), '# Notes\n');
+  assert.deepEqual(plan.warnings, [
+    'Cursor (global): delete the Banglish rule from Cursor Settings → Rules → User Rules by hand.',
+  ]);
+});

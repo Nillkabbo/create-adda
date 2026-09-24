@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { parseArgs, styleText } from 'node:util';
 import { TARGETS } from '../src/targets.js';
-import { buildPlan, applyPlan } from '../src/plan.js';
+import { buildPlan, applyPlan, isPluginInstalled } from '../src/plan.js';
 import { onPath } from '../src/paths.js';
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
@@ -83,10 +83,10 @@ function scopeFor(id, requested, hasClaude) {
   return TARGETS[id].project ? 'project' : 'global';
 }
 
-async function promptChoices(env, hasClaude) {
+async function promptChoices(env, hasClaude, remove) {
   const { checkbox, select } = await import('@inquirer/prompts');
   const targets = await checkbox({
-    message: 'Which AI tools should talk to you in Banglish?',
+    message: remove ? 'Remove Adda from which AI tools?' : 'Which AI tools should talk to you in Banglish?',
     choices: TARGET_IDS.map((id) => ({
       name: TARGETS[id].label,
       value: id,
@@ -97,7 +97,9 @@ async function promptChoices(env, hasClaude) {
   const scopes = {};
   for (const id of targets) {
     const available = scopesOf(id);
-    if (available.length < 2) continue;
+    // Interactive removal clears every scope, like --remove without --scope.
+    if (remove) scopes[id] = 'all';
+    if (remove || available.length < 2) continue;
     scopes[id] = await select({
       message: `${TARGETS[id].label}: where should the rule live?`,
       default: scopeFor(id, undefined, hasClaude),
@@ -153,11 +155,13 @@ async function main() {
   if (flags.target) {
     const targets = parseTargets(flags.target);
     const scope = flags.scope ? parseScope(flags.scope) : undefined;
-    choices = { targets, scopes: Object.fromEntries(targets.map((id) => [id, scopeFor(id, scope, hasClaude)])) };
+    // Removing without --scope removes the target from every scope it can live in.
+    const scopeOf = (id) => (flags.remove && !scope ? 'all' : scopeFor(id, scope, hasClaude));
+    choices = { targets, scopes: Object.fromEntries(targets.map((id) => [id, scopeOf(id)])) };
   } else if (interactive) {
     console.log(paint('bold', `\ncreate-adda v${pkg.version}`));
     console.log('Adda in Banglish, ship in English.\n');
-    choices = await promptChoices(env, hasClaude);
+    choices = await promptChoices(env, hasClaude, flags.remove);
   } else {
     throw new UsageError('No TTY detected: pass --target (and --yes) to run non-interactively.');
   }
@@ -165,6 +169,9 @@ async function main() {
     throw new Error('claude CLI not found on PATH. Install Claude Code, or use --scope project or global.');
   }
 
+  // Only ask claude when the answer can change the plan: Claude at a non-plugin scope.
+  const pluginInstalled =
+    hasClaude && choices.targets.includes('claude') && choices.scopes.claude !== 'plugin' && isPluginInstalled();
   const plan = buildPlan(
     {
       ...choices,
@@ -172,7 +179,7 @@ async function main() {
       out: flags.out,
       marketplace: process.env.ADDA_MARKETPLACE || undefined,
     },
-    env,
+    { ...env, pluginInstalled },
   );
   if (!plan.actions.length) {
     plan.warnings.forEach((warning) => console.log(paint('yellow', `! ${warning}`)));

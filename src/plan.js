@@ -24,7 +24,7 @@ import {
   DEFAULT_MARKETPLACE,
   PLUGIN_SPARSE_PATHS,
 } from './targets.js';
-import { findGitRoot } from './paths.js';
+import { findExecutable, findGitRoot } from './paths.js';
 
 const readOrEmpty = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : '');
 // Compare real paths: cwd is already resolved, while $HOME may go through a symlink.
@@ -85,10 +85,21 @@ function installActions(spec, path, body, options, env) {
   return [{ type: 'write', path, content }];
 }
 
-function removeActions(spec, path, root) {
-  if (spec.kind === 'plugin') {
-    return [{ type: 'exec', command: 'claude', args: ['plugin', 'uninstall', PLUGIN_ID] }];
+const uninstallPluginAction = () => ({ type: 'exec', command: 'claude', args: ['plugin', 'uninstall', PLUGIN_ID] });
+
+// Asks the claude CLI whether the plugin is installed; false when that cannot be determined.
+export function isPluginInstalled(run = runCommand) {
+  const { code, stdout } = run('claude', ['plugin', 'list', '--json']);
+  if (code !== 0) return false;
+  try {
+    return JSON.parse(stdout).some((plugin) => plugin.id === PLUGIN_ID);
+  } catch {
+    return false;
   }
+}
+
+function removeActions(spec, path, root) {
+  if (spec.kind === 'plugin') return [uninstallPluginAction()];
   if (spec.kind === 'print' || !existsSync(path)) return [];
   // Owned files may sit in folders we created (.cursor/rules); prune them up to the root if empty.
   if (spec.kind === 'file') return [{ type: 'delete', path, pruneUpTo: root }];
@@ -107,30 +118,55 @@ function gitignoreActions(project, entries, remove) {
   return next ? [{ type: 'write', path, content: next }] : [{ type: 'delete', path }];
 }
 
+const SCOPES = ['project', 'global', 'plugin'];
+
 export function buildPlan(options, env) {
   const actions = [];
   const warnings = [];
   const ignore = [];
-  // Targets without a project scope are always global.
-  const scopeOf = (id) =>
-    TARGETS[id].project ? options.scopes?.[id] ?? 'project' : 'global';
-  const project = options.targets.some((id) => scopeOf(id) === 'project')
-    ? resolveProjectDir(env)
-    : null;
+  // Targets without a project scope are always global. `all` (remove only) expands to every
+  // scope the target has; the plugin only when it is installed.
+  const scopesOf = (id) => {
+    const target = TARGETS[id];
+    const requested = options.scopes?.[id];
+    if (requested === 'all') {
+      return SCOPES.filter((scope) => target[scope] && (scope !== 'plugin' || env.pluginInstalled));
+    }
+    return [target.project ? requested ?? 'project' : 'global'];
+  };
+  const wanted = options.targets.map((id) => [id, scopesOf(id)]);
+
+  // An explicit project scope must resolve (and refuses $HOME); `all` just skips the project then.
+  let project = null;
+  if (wanted.some(([, scopes]) => scopes.includes('project'))) {
+    const explicit = wanted.some(([id, scopes]) => scopes.includes('project') && options.scopes?.[id] !== 'all');
+    try {
+      project = resolveProjectDir(env);
+    } catch (error) {
+      if (explicit) throw error;
+    }
+  }
   const body = rulesBody();
 
-  for (const id of options.targets) {
-    const scope = scopeOf(id);
-    const spec = TARGETS[id][scope];
-    const root = scope === 'project' ? project.dir : env.home;
-    const path = spec.path?.(scope === 'project' ? project.dir : env);
-    actions.push(
-      ...(options.remove
-        ? removeActions(spec, path, root)
-        : installActions(spec, path, body, options, env)),
-    );
-    if (spec.gitignore) ignore.push(spec.gitignore);
-    if (options.remove && spec.removeHint) warnings.push(spec.removeHint);
+  for (const [id, scopes] of wanted) {
+    for (const scope of scopes) {
+      if (scope === 'project' && !project) continue;
+      const spec = TARGETS[id][scope];
+      const root = scope === 'project' ? project.dir : env.home;
+      const path = spec.path?.(scope === 'project' ? project.dir : env);
+      actions.push(
+        ...(options.remove
+          ? removeActions(spec, path, root)
+          : installActions(spec, path, body, options, env)),
+      );
+      // Moving Claude to a block scope retires the plugin, just as installing the plugin
+      // retires the blocks: the rules must never load twice.
+      if (!options.remove && TARGETS[id].plugin && scope !== 'plugin' && env.pluginInstalled) {
+        actions.push(uninstallPluginAction());
+      }
+      if (spec.gitignore) ignore.push(spec.gitignore);
+      if (options.remove && spec.removeHint) warnings.push(spec.removeHint);
+    }
   }
 
   if (ignore.length && project.gitRoot) {
@@ -141,9 +177,19 @@ export function buildPlan(options, env) {
   return { actions, warnings };
 }
 
+const shellQuote = (arg) => (/[\s"&|<>^]/.test(arg) ? `"${arg.replace(/"/g, '""')}"` : arg);
+
 function runCommand(command, args) {
-  const result = spawnSync(command, args, { encoding: 'utf8' });
-  return { code: result.error ? 1 : result.status, stderr: result.error?.message ?? result.stderr };
+  const resolved = findExecutable(command) ?? command;
+  // Windows runs .cmd/.bat files (npm-installed claude) only through the shell.
+  const result = /\.(cmd|bat)$/i.test(resolved)
+    ? spawnSync([resolved, ...args].map(shellQuote).join(' '), { shell: true, encoding: 'utf8' })
+    : spawnSync(resolved, args, { encoding: 'utf8' });
+  return {
+    code: result.error ? 1 : result.status,
+    stdout: result.stdout ?? '',
+    stderr: result.error?.message ?? result.stderr,
+  };
 }
 
 export function applyPlan(plan, { run = runCommand } = {}) {
