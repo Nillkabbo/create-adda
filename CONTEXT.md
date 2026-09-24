@@ -45,7 +45,7 @@ How the rule reaches a tool: as a Block in a shared file, as a File the tool own
 _Avoid_: Install method, kind, mode
 
 **Target**:
-A tool the rule is configured for: Claude Code, Cursor, Codex CLI, Gemini CLI, or Web AI.
+A tool the rule is configured for: Claude Code, Cursor, GitHub Copilot, Codex CLI, Gemini CLI, Hermes Agent, or Web AI.
 _Avoid_: Tool, platform, client
 
 **Scope**:

@@ -106,6 +106,22 @@ test('--remove uninstalls what a previous run installed', () => {
   assert.equal(exists(join(box.home, '.codex', 'AGENTS.md')), false);
 });
 
+test('copilot installs at both scopes and --remove takes both out', () => {
+  const box = sandbox();
+  const project = join(box.repo, '.github', 'instructions', 'adda.instructions.md');
+  const global = join(box.home, '.copilot', 'instructions', 'adda.instructions.md');
+  assert.equal(run(['--target', 'copilot', '--scope', 'project', '--yes'], box).code, 0);
+  assert.equal(run(['--target', 'copilot', '--scope', 'global', '--yes'], box).code, 0);
+  assert.match(read(project), /Talk to the developer in Banglish/);
+  assert.match(read(global), /Talk to the developer in Banglish/);
+
+  const { code } = run(['--remove', '--target', 'copilot', '--yes'], box);
+  assert.equal(code, 0);
+  assert.equal(exists(project), false);
+  assert.equal(exists(global), false);
+  assert.equal(exists(join(box.home, '.copilot')), false);
+});
+
 test('hermes installs into an existing SOUL.md and removes cleanly', () => {
   const box = sandbox();
   write(join(box.home, '.hermes', 'SOUL.md'), '# Personality\n\nDirect, no filler.\n');
@@ -132,10 +148,10 @@ test('hermes without a seeded SOUL.md fails with a pointer to run Hermes first',
 
 test('unknown targets are rejected', () => {
   const box = sandbox();
-  const { code, stderr } = run(['--target', 'copilot', '--yes'], box);
+  const { code, stderr } = run(['--target', 'windsurf', '--yes'], box);
 
   assert.equal(code, 1);
-  assert.match(stderr, /Unknown target: copilot/);
+  assert.match(stderr, /Unknown target: windsurf/);
 });
 
 test('project scope in the home directory fails with a pointer to --scope global', () => {

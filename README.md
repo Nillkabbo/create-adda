@@ -16,12 +16,15 @@ The interactive setup asks which tools to configure, where the rule should live,
 |---|---|---|
 | Claude Code | `CLAUDE.local.md` at the git root (gitignored) | `~/.claude/CLAUDE.md`, or the **Adda plugin** (default when `claude` is installed) |
 | Cursor | `.cursor/rules/adda.mdc` at the git root (gitignored) | Prints text to paste into Settings → Rules → User Rules |
+| GitHub Copilot (VS Code) | `.github/instructions/adda.instructions.md` at the git root (gitignored) | `~/.copilot/instructions/adda.instructions.md` |
 | Codex CLI | — | `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`) |
 | Gemini CLI | — | `~/.gemini/GEMINI.md` |
 | Hermes Agent | — | `$HERMES_HOME/SOUL.md` (default `~/.hermes/SOUL.md`); run Hermes once first so it creates this file |
 | Web AI (ChatGPT, Claude.ai, Gemini) | — | Prints a prompt to paste into custom instructions |
 
 > **Cursor (limited):** the rule installs and Cursor loads it, but Cursor's Auto model (the only one on free plans) didn't follow it in our tests and kept replying in English. Named models on paid plans are untested.
+>
+> **GitHub Copilot (live test pending):** Adda writes its own instructions file and never touches the shared `.github/copilot-instructions.md`. VS Code also loads `~/.claude/CLAUDE.md` and `CLAUDE.local.md` into Copilot Chat, so if you installed Claude Code at project or global scope, VS Code already has the rule and this target only adds a second copy of the same text. The Claude Code plugin writes no `CLAUDE.md` block, so plugin users need this target.
 >
 > **Web AI (ChatGPT tested):** ChatGPT followed the prompt when it was pasted as the first message of a chat: Banglish replies, English code, English on request. Pasting it into Custom Instructions (the intended setup) and the Claude.ai and Gemini web apps are untested.
 >
@@ -92,7 +95,7 @@ The Claude Code plugin reads them at the start of every session. For the other t
 
 | Flag | Meaning |
 |---|---|
-| `--target <ids>` | Comma-separated: `claude`, `cursor`, `codex`, `gemini`, `hermes`, `web` |
+| `--target <ids>` | Comma-separated: `claude`, `cursor`, `copilot`, `codex`, `gemini`, `hermes`, `web` |
 | `--scope project\|global\|plugin` | Where the rule lives. `plugin` is Claude Code only. Default: `plugin` for Claude when `claude` is installed, otherwise `project` |
 | `-y`, `--yes` | Skip the confirmation prompt |
 | `--remove` | Uninstall from the chosen targets |

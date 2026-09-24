@@ -15,6 +15,7 @@ Targets live in a registry. Each target is one object describing its label, supp
 |---|---|---|
 | Claude Code | `<git-root>/CLAUDE.local.md`, marker block, gitignored | `~/.claude/CLAUDE.md`, marker block |
 | Cursor | `<git-root>/.cursor/rules/adda.mdc` (owned file, `alwaysApply: true`), gitignored | print paste instructions for Settings → Rules → User Rules |
+| GitHub Copilot (VS Code) | `<git-root>/.github/instructions/adda.instructions.md` (owned file, `applyTo: "**"`), gitignored | `~/.copilot/instructions/adda.instructions.md` (owned file), the same path on every OS |
 | Codex CLI | — | `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`), marker block |
 | Gemini CLI | — | `~/.gemini/GEMINI.md`, marker block |
 | Hermes Agent | — | `$HERMES_HOME/SOUL.md` (default `~/.hermes/SOUL.md`), marker block; the file must already exist (run Hermes once to seed it) so the install never replaces the built-in identity |
@@ -22,7 +23,7 @@ Targets live in a registry. Each target is one object describing its label, supp
 
 Claude Code also has a third scope, `plugin`, which is its default when the `claude` CLI is installed (see [ADR 0001](adr/0001-plugin-is-the-default-claude-code-delivery.md) and the plugin section below).
 
-Excluded on purpose: `.cursorrules` (deprecated), project `AGENTS.md` / `GEMINI.md` / `.github/copilot-instructions.md` (shared, committed files). Hermes has no project scope: it loads exactly one project context file per session, so a dedicated Adda file would shadow the repo's own `AGENTS.md`; its global slot (`SOUL.md`, identity, slot #1 of the system prompt) is loaded every session on every surface and is additive to nothing.
+Excluded on purpose: `.cursorrules` (deprecated), project `AGENTS.md` / `GEMINI.md` / `.github/copilot-instructions.md` (shared, committed files). Hermes has no project scope: it loads exactly one project context file per session, so a dedicated Adda file would shadow the repo's own `AGENTS.md`; its global slot (`SOUL.md`, identity, slot #1 of the system prompt) is loaded every session on every surface and is additive to nothing. VS Code also loads `~/.claude/CLAUDE.md` and `CLAUDE.local.md` into Copilot Chat (`chat.useClaudeMdFile`), so a Claude Code block and the Copilot target together load the rule twice; this is accepted and documented rather than detected, because coupling the two targets would let removing one silently strip the rule from the other.
 
 ## Rule content
 
@@ -30,6 +31,7 @@ One canonical source: `src/rules.md`. Each target wraps it:
 
 - Marker-block targets: body between `<!-- adda:start -->` and `<!-- adda:end -->`.
 - Cursor: `.mdc` frontmatter (`description`, `alwaysApply: true`) + body.
+- Copilot: `.instructions.md` frontmatter (`name`, `description`, `applyTo: "**"`) + body. Without `applyTo` VS Code only attaches the file by hand.
 - Web: one-line role header + body.
 
 The body covers:
@@ -47,7 +49,7 @@ The body covers:
 ## File handling
 
 - **Marker block upsert**: if the block exists, replace its contents; otherwise append it after the existing text, which is kept byte for byte, separated by a blank line; if the file is missing, create it (and parent directories). The start marker carries flags that let `--remove` undo the install exactly: `created-file` (this tool created the file) and `no-eol` (the file had no trailing newline before the block was appended).
-- **Owned files** (`adda.mdc`): written whole.
+- **Owned files** (`adda.mdc`, `adda.instructions.md`): written whole; `--remove` also prunes the folders they leave empty.
 - **Re-running** the CLI is the update path: blocks and owned files are refreshed from the current `rules.md`.
 - **`--remove`**: strip marker blocks and exactly the separator the install added, so the file is restored byte for byte (a file this tool created is deleted instead); delete owned files; remove the gitignore block lines. Blocks written before the `no-eol` flag existed are removed as before.
 - **Project scope location**: walk up from `cwd` to the nearest `.git` root and write there. No git root → write to `cwd` and warn that `.gitignore` was skipped. Refuse project scope when the resolved directory is `$HOME`; suggest `--scope global`.
@@ -57,7 +59,7 @@ The body covers:
 
 Interactive (TTY):
 
-1. Multi-select targets. Pre-check tools whose config folder exists (`~/.claude`, `~/.cursor`, `~/.codex`, `~/.gemini`); Web unchecked. At least one required.
+1. Multi-select targets. Pre-check tools whose config folder exists (`~/.claude`, `~/.cursor`, `~/.vscode`, `~/.codex`, `~/.gemini`); Web unchecked. At least one required.
 2. For each chosen target with more than one scope: select `Plugin` / `This project` / `Global (all projects)`. Plugin is Claude Code only and is disabled when the `claude` CLI is not on `PATH`. Global-only targets skip this. With `--remove`, this step is skipped and every scope is cleared.
 3. Print a summary of planned actions (create / update block / write / delete / print, with paths).
 4. One `Proceed? (Y/n)` confirm, then apply.
@@ -66,7 +68,7 @@ Flags:
 
 | Flag | Meaning |
 |---|---|
-| `--target <ids>` | Comma-separated: `claude,cursor,codex,gemini,hermes,web` |
+| `--target <ids>` | Comma-separated: `claude,cursor,copilot,codex,gemini,hermes,web` |
 | `--scope project\|global\|plugin` | Scope for targets that support it (`plugin` is Claude Code only). Default: `plugin` for Claude when the `claude` CLI is on `PATH`, otherwise `project`; global-only targets always use `global` |
 | `--yes`, `-y` | Skip the confirm |
 | `--remove` | Uninstall instead of install. Without `--scope`, removes the target from every scope it can live in |

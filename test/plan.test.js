@@ -81,6 +81,43 @@ test('cursor global scope prints paste instructions instead of writing a file', 
   assert.equal(exists(join(home, '.cursor')), false);
 });
 
+test('copilot project scope writes an always-applied instructions file and gitignores it', () => {
+  const { repo, env } = sandbox();
+  install(env, { targets: ['copilot'], scopes: { copilot: 'project' } });
+
+  const file = read(join(repo, '.github', 'instructions', 'adda.instructions.md'));
+  assert.ok(file.startsWith('---\nname: Adda\ndescription: Banglish in chat, English in everything shipped\napplyTo: "**"\n---\n'));
+  assert.match(file, /Talk to the developer in Banglish/);
+  assert.equal(exists(join(repo, '.github', 'copilot-instructions.md')), false);
+  assert.equal(read(join(repo, '.gitignore')), '# adda\n.github/instructions/adda.instructions.md\n');
+});
+
+test('copilot global scope writes ~/.copilot/instructions and touches no project file', () => {
+  const { home, repo, env } = sandbox();
+  install(env, { targets: ['copilot'], scopes: { copilot: 'global' } });
+
+  const file = read(join(home, '.copilot', 'instructions', 'adda.instructions.md'));
+  assert.match(file, /applyTo: "\*\*"/);
+  assert.match(file, /Talk to the developer in Banglish/);
+  assert.equal(exists(join(repo, '.github')), false);
+  assert.equal(exists(join(repo, '.gitignore')), false);
+});
+
+test('copilot remove deletes only its own files and keeps folders that hold other files', () => {
+  const { home, repo, env } = sandbox();
+  write(join(repo, '.github', 'workflows', 'test.yml'), 'name: test\n');
+  write(join(home, '.copilot', 'config.json'), '{}\n');
+  install(env, { targets: ['copilot'], scopes: { copilot: 'project' } });
+  install(env, { targets: ['copilot'], scopes: { copilot: 'global' } });
+  install(env, { targets: ['copilot'], scopes: { copilot: 'all' }, remove: true });
+
+  assert.equal(exists(join(repo, '.github', 'instructions')), false);
+  assert.equal(read(join(repo, '.github', 'workflows', 'test.yml')), 'name: test\n');
+  assert.equal(exists(join(home, '.copilot', 'instructions')), false);
+  assert.equal(read(join(home, '.copilot', 'config.json')), '{}\n');
+  assert.equal(exists(join(repo, '.gitignore')), false);
+});
+
 test('codex and gemini are global-only, even when project scope is requested', () => {
   const { root, home, repo, env } = sandbox();
   const codexHome = join(root, 'custom-codex');
