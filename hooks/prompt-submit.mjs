@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// UserPromptSubmit hook: handles `/banglish on|off|status` and injects the switch into the current session.
+// UserPromptSubmit hook: handles `/adda on|off|status` and injects the switch into the current session.
 import { isEnabled, rules, setEnabled } from './state.mjs';
 
 const OFF =
-  'Banglish protocol is OFF (turned off by the developer with /banglish off). ' +
+  'Adda is OFF (turned off by the developer with /adda off). ' +
   'From now on, reply in English and ignore the earlier Banglish language protocol.';
-const ON = 'Banglish protocol is ON (turned on by the developer with /banglish on). Follow it from now on:';
+const ON = 'Adda is ON (turned on by the developer with /adda on). Follow it from now on:';
 
-// `/banglish <arg>` or the namespaced `/banglish:banglish <arg>`; a bare command means status.
-const COMMAND = /^\/banglish(?::banglish)?(?:\s+(\S+))?$/i;
+// `/adda <arg>` or the namespaced `/adda:adda <arg>`; a bare command means status.
+const COMMAND = /^\/adda(?::adda)?(?:\s+(\S+))?$/i;
 
 function respond(arg) {
   switch (arg) {
@@ -19,7 +19,7 @@ function respond(arg) {
       setEnabled(true);
       return `${ON}\n\n${rules()}`;
     case 'status':
-      return `Banglish protocol status: ${isEnabled() ? 'ON' : 'OFF'}.`;
+      return `Adda status: ${isEnabled() ? 'ON' : 'OFF'}.`;
     default:
       return '';
   }

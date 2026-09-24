@@ -10,9 +10,9 @@ import { onPath } from '../src/paths.js';
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const TARGET_IDS = Object.keys(TARGETS);
 
-const USAGE = `Usage: create-banglish-agent [options]
+const USAGE = `Usage: create-adda [options]
 
-Install a "Banglish in chat, English in everything shipped" rule into your AI tools.
+Adda in Banglish, ship in English: your AI tools chat in Banglish, everything they ship stays English.
 Run with no options for the interactive setup.
 
 Options:
@@ -61,7 +61,7 @@ function parseTargets(value) {
 }
 
 const SCOPE_LABELS = {
-  plugin: 'Plugin (recommended: auto-loads every session, toggle with /banglish on|off)',
+  plugin: 'Plugin (recommended: auto-loads every session, toggle with /adda on|off)',
   project: 'This project (gitignored, only you)',
   global: 'Global (all your projects)',
 };
@@ -155,8 +155,8 @@ async function main() {
     const scope = flags.scope ? parseScope(flags.scope) : undefined;
     choices = { targets, scopes: Object.fromEntries(targets.map((id) => [id, scopeFor(id, scope, hasClaude)])) };
   } else if (interactive) {
-    console.log(paint('bold', `\ncreate-banglish-agent v${pkg.version}`));
-    console.log('Banglish in chat, English in everything shipped.\n');
+    console.log(paint('bold', `\ncreate-adda v${pkg.version}`));
+    console.log('Adda in Banglish, ship in English.\n');
     choices = await promptChoices(env, hasClaude);
   } else {
     throw new UsageError('No TTY detected: pass --target (and --yes) to run non-interactively.');
@@ -170,7 +170,7 @@ async function main() {
       ...choices,
       remove: flags.remove,
       out: flags.out,
-      marketplace: process.env.BANGLISH_AGENT_MARKETPLACE || undefined,
+      marketplace: process.env.ADDA_MARKETPLACE || undefined,
     },
     env,
   );
@@ -194,7 +194,7 @@ async function main() {
     .forEach((action) => printBox(action.title, action.content));
   plan.warnings.forEach((warning) => console.log(paint('yellow', `! ${warning}`)));
   if (plan.actions.some((action) => action.type === 'exec' && action.args[1] === 'install')) {
-    console.log(paint('bold', '\nRestart Claude Code (or run /clear) to activate the Banglish plugin.'));
+    console.log(paint('bold', '\nRestart Claude Code (or run /clear) to activate the Adda plugin.'));
   }
   console.log(paint('green', '\nDone.'));
 }

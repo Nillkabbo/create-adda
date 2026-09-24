@@ -4,7 +4,7 @@ import { join, dirname } from 'node:path';
 
 // Isolated sandbox: a fake home, a fake CODEX_HOME, and a git repo with a nested cwd.
 export function sandbox() {
-  const root = mkdtempSync(join(tmpdir(), 'banglish-agent-'));
+  const root = mkdtempSync(join(tmpdir(), 'adda-'));
   const home = join(root, 'home');
   const repo = join(root, 'repo');
   const cwd = join(repo, 'src', 'components');

@@ -22,8 +22,8 @@ test('plugin scope adds the marketplace and installs the plugin for the user', (
   applyPlan(buildPlan(PLUGIN, env), { run: runner.run });
 
   assert.deepEqual(runner.calls, [
-    'claude plugin marketplace add Nillkabbo/create-banglish-agent --sparse .claude-plugin src hooks commands',
-    'claude plugin install banglish@banglish --scope user',
+    'claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin src hooks commands',
+    'claude plugin install adda@adda --scope user',
   ]);
 });
 
@@ -35,7 +35,7 @@ test('a failing plugin command stops the run and names the command to retry by h
     () => applyPlan(buildPlan(PLUGIN, env), { run: runner.run }),
     (error) =>
       /marketplace exploded/.test(error.message) &&
-      error.message.includes('claude plugin marketplace add Nillkabbo/create-banglish-agent'),
+      error.message.includes('claude plugin marketplace add Nillkabbo/create-adda'),
   );
   assert.equal(runner.calls.length, 1);
 });
@@ -65,13 +65,13 @@ test('removing the plugin scope uninstalls the plugin and keeps the marketplace'
   const runner = fakeRunner();
   applyPlan(buildPlan({ ...PLUGIN, remove: true }, env), { run: runner.run });
 
-  assert.deepEqual(runner.calls, ['claude plugin uninstall banglish@banglish']);
+  assert.deepEqual(runner.calls, ['claude plugin uninstall adda@adda']);
 });
 
 test('a local directory marketplace is added without --sparse, which only git sources support', () => {
   const { env } = sandbox();
   const runner = fakeRunner();
-  applyPlan(buildPlan({ ...PLUGIN, marketplace: '/work/create-banglish-agent' }, env), { run: runner.run });
+  applyPlan(buildPlan({ ...PLUGIN, marketplace: '/work/create-adda' }, env), { run: runner.run });
 
-  assert.equal(runner.calls[0], 'claude plugin marketplace add /work/create-banglish-agent');
+  assert.equal(runner.calls[0], 'claude plugin marketplace add /work/create-adda');
 });

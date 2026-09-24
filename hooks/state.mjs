@@ -1,9 +1,9 @@
-// On/off state for the Banglish plugin, shared by the hooks. A missing or unreadable file means enabled.
+// On/off state for the Adda plugin, shared by the hooks. A missing or unreadable file means enabled.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-const statePath = () => join(homedir(), '.claude', 'banglish-agent.json');
+const statePath = () => join(homedir(), '.claude', 'adda.json');
 
 export function isEnabled() {
   try {

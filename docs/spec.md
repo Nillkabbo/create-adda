@@ -1,4 +1,4 @@
-# Spec: `create-banglish-agent` v1
+# Spec: `create-adda` v1
 
 ## Purpose
 
@@ -14,7 +14,7 @@ Targets live in a registry. Each target is one object describing its label, supp
 | Target | Project scope | Global scope |
 |---|---|---|
 | Claude Code | `<git-root>/CLAUDE.local.md`, marker block, gitignored | `~/.claude/CLAUDE.md`, marker block |
-| Cursor | `<git-root>/.cursor/rules/banglish.mdc` (owned file, `alwaysApply: true`), gitignored | print paste instructions for Settings → Rules → User Rules |
+| Cursor | `<git-root>/.cursor/rules/adda.mdc` (owned file, `alwaysApply: true`), gitignored | print paste instructions for Settings → Rules → User Rules |
 | Codex CLI | — | `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`), marker block |
 | Gemini CLI | — | `~/.gemini/GEMINI.md`, marker block |
 | Web (ChatGPT / Claude.ai / Gems) | — | print prompt to stdout; `--out <path>` writes a file instead |
@@ -25,7 +25,7 @@ Excluded on purpose: `.cursorrules` (deprecated), project `AGENTS.md` / `GEMINI.
 
 One canonical source: `src/rules.md`. Each target wraps it:
 
-- Marker-block targets: body between `<!-- banglish-agent:start -->` and `<!-- banglish-agent:end -->`.
+- Marker-block targets: body between `<!-- adda:start -->` and `<!-- adda:end -->`.
 - Cursor: `.mdc` frontmatter (`description`, `alwaysApply: true`) + body.
 - Web: one-line role header + body.
 
@@ -44,11 +44,11 @@ The body covers:
 ## File handling
 
 - **Marker block upsert**: if the block exists, replace its contents; otherwise append it (separated by a blank line); if the file is missing, create it (and parent directories).
-- **Owned files** (`banglish.mdc`): written whole.
+- **Owned files** (`adda.mdc`): written whole.
 - **Re-running** the CLI is the update path: blocks and owned files are refreshed from the current `rules.md`.
 - **`--remove`**: strip marker blocks (delete the file if nothing but whitespace remains), delete owned files, remove the gitignore block lines.
 - **Project scope location**: walk up from `cwd` to the nearest `.git` root and write there. No git root → write to `cwd` and warn that `.gitignore` was skipped. Refuse project scope when the resolved directory is `$HOME`; suggest `--scope global`.
-- **`.gitignore`**: only inside a git repo. Add a `# banglish-agent` section containing only the lines for chosen project-scope targets, never duplicating existing lines. Create `.gitignore` if missing. `--remove` deletes those lines and the section header.
+- **`.gitignore`**: only inside a git repo. Add a `# adda` section containing only the lines for chosen project-scope targets, never duplicating existing lines. Create `.gitignore` if missing. `--remove` deletes those lines and the section header.
 
 ## CLI flow
 
@@ -105,19 +105,19 @@ No TTY and no `--target` → exit with a usage error (code 1) instead of hanging
 
 ## Claude Code plugin (v0.2.0)
 
-The repo is also a Claude Code marketplace (`banglish`) whose plugin (`banglish`) lives at the repo root (`source: "./"`). The plugin hooks read `src/rules.md`, so the npm tool and the plugin share one rule source.
+The repo is also a Claude Code marketplace (`adda`) whose plugin (`adda`) lives at the repo root (`source: "./"`). The plugin hooks read `src/rules.md`, so the npm tool and the plugin share one rule source.
 
 - `.claude-plugin/marketplace.json`, `.claude-plugin/plugin.json`.
 - `hooks/session-start.mjs` (SessionStart: startup, resume, clear, compact): when enabled, prints the rules as context; when disabled, prints nothing.
-- `hooks/prompt-submit.mjs` (UserPromptSubmit): handles `/banglish on|off|status`, persists `~/.claude/banglish-agent.json` (`{ "enabled": boolean }`, missing file = enabled), and injects immediate context: `on` re-injects the rules, `off` switches the session to English, `status` reports the state. Other prompts produce no output.
-- `commands/banglish.md`: `/banglish` autocomplete; the model confirms the new state in one line.
+- `hooks/prompt-submit.mjs` (UserPromptSubmit): handles `/adda on|off|status`, persists `~/.claude/adda.json` (`{ "enabled": boolean }`, missing file = enabled), and injects immediate context: `on` re-injects the rules, `off` switches the session to English, `status` reports the state. Other prompts produce no output.
+- `commands/adda.md`: `/adda` autocomplete; the model confirms the new state in one line.
 - Hooks are `.mjs` and use only Node built-ins: the plugin checkout is sparse (no `package.json`, no `node_modules`).
 
 ### Installer integration
 
 - Claude target gains a `plugin` scope, the default when `claude` is on `PATH`; `--scope plugin` on the command line.
-- Install plans `exec` actions: `claude plugin marketplace add Nillkabbo/create-banglish-agent --sparse .claude-plugin src hooks commands`, then `claude plugin install banglish@banglish --scope user`. It also strips any Claude marker block from `<project>/CLAUDE.local.md` and `~/.claude/CLAUDE.md` to avoid duplicate rules.
-- Remove plans `claude plugin uninstall banglish@banglish`; the marketplace entry stays.
+- Install plans `exec` actions: `claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin src hooks commands`, then `claude plugin install adda@adda --scope user`. It also strips any Claude marker block from `<project>/CLAUDE.local.md` and `~/.claude/CLAUDE.md` to avoid duplicate rules.
+- Remove plans `claude plugin uninstall adda@adda`; the marketplace entry stays.
 - `applyPlan` takes an injected command runner. A failing `exec` stops the run and prints the command to run by hand; completed file changes are not rolled back.
 - After a plugin install, print a hint to restart Claude Code or run `/clear`.
 

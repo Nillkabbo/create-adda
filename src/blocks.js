@@ -1,7 +1,7 @@
-const START = '<!-- banglish-agent:start -->';
+const START = '<!-- adda:start -->';
 // Marks a block whose file this tool created, so --remove may delete the file afterwards.
-const START_CREATED = '<!-- banglish-agent:start created-file -->';
-const END = '<!-- banglish-agent:end -->';
+const START_CREATED = '<!-- adda:start created-file -->';
+const END = '<!-- adda:end -->';
 
 function findBlock(text) {
   const created = text.indexOf(START_CREATED);
@@ -36,7 +36,7 @@ export function removeBlock(text) {
   return `${before}\n\n${after}`;
 }
 
-const GITIGNORE_HEADER = '# banglish-agent';
+const GITIGNORE_HEADER = '# adda';
 
 function splitLines(text) {
   const lines = text.split('\n');

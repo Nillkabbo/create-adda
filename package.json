@@ -1,10 +1,10 @@
 {
-  "name": "create-banglish-agent",
+  "name": "create-adda",
   "version": "0.2.0",
-  "description": "Install a personal 'Banglish in chat, English in everything shipped' rule into your AI coding tools.",
+  "description": "Adda in Banglish, ship in English: make your AI coding tools chat in Banglish while code, commits, and docs stay in English.",
   "type": "module",
   "bin": {
-    "create-banglish-agent": "./bin/cli.js"
+    "create-adda": "./bin/cli.js"
   },
   "files": [
     "bin",
@@ -17,6 +17,7 @@
     "node": ">=20.17"
   },
   "keywords": [
+    "adda",
     "banglish",
     "claude-code",
     "cursor",
@@ -29,11 +30,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Nillkabbo/create-banglish-agent.git"
+    "url": "git+https://github.com/Nillkabbo/create-adda.git"
   },
-  "homepage": "https://github.com/Nillkabbo/create-banglish-agent#readme",
+  "homepage": "https://github.com/Nillkabbo/create-adda#readme",
   "bugs": {
-    "url": "https://github.com/Nillkabbo/create-banglish-agent/issues"
+    "url": "https://github.com/Nillkabbo/create-adda/issues"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.7.2"

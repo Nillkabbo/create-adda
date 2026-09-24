@@ -56,7 +56,7 @@ test('non-interactive run without --target exits 1 with usage instead of hanging
 
   assert.equal(code, 1);
   assert.match(stderr, /No TTY detected/);
-  assert.match(stderr, /Usage: create-banglish-agent/);
+  assert.match(stderr, /Usage: create-adda/);
 });
 
 test('non-interactive run without --yes refuses to apply changes', () => {
@@ -74,7 +74,7 @@ test('--print web writes only the prompt to stdout', () => {
 
   assert.equal(code, 0);
   assert.match(stdout, /^Role: software engineering peer collaborator\./);
-  assert.doesNotMatch(stdout, /Planned|Done|create-banglish-agent/);
+  assert.doesNotMatch(stdout, /Planned|Done|create-adda/);
 });
 
 test('--remove uninstalls what a previous run installed', () => {
@@ -120,10 +120,10 @@ test('claude defaults to the plugin when the claude CLI is on PATH', () => {
   assert.equal(code, 0);
   assert.equal(
     claudeLog(box),
-    'claude plugin marketplace add Nillkabbo/create-banglish-agent --sparse .claude-plugin src hooks commands\n' +
-      'claude plugin install banglish@banglish --scope user\n',
+    'claude plugin marketplace add Nillkabbo/create-adda --sparse .claude-plugin src hooks commands\n' +
+      'claude plugin install adda@adda --scope user\n',
   );
-  assert.match(stdout, /run\s+claude plugin install banglish@banglish/);
+  assert.match(stdout, /run\s+claude plugin install adda@adda/);
   assert.match(stdout, /Restart Claude Code/);
   assert.equal(exists(join(box.repo, 'CLAUDE.local.md')), false);
 });
@@ -149,14 +149,14 @@ test('--scope plugin --remove uninstalls the plugin', () => {
   const { code } = run(['--remove', '--target', 'claude', '--scope', 'plugin', '--yes'], box, { withClaude: true });
 
   assert.equal(code, 0);
-  assert.equal(claudeLog(box), 'claude plugin uninstall banglish@banglish\n');
+  assert.equal(claudeLog(box), 'claude plugin uninstall adda@adda\n');
 });
 
-test('BANGLISH_AGENT_MARKETPLACE points the install at another marketplace source', () => {
+test('ADDA_MARKETPLACE points the install at another marketplace source', () => {
   const box = sandbox();
   run(['--target', 'claude', '--scope', 'plugin', '--yes'], box, {
     withClaude: true,
-    env: { BANGLISH_AGENT_MARKETPLACE: '/tmp/local-checkout' },
+    env: { ADDA_MARKETPLACE: '/tmp/local-checkout' },
   });
 
   assert.match(claudeLog(box), /^claude plugin marketplace add \/tmp\/local-checkout\n/);

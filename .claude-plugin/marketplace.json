@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "banglish",
+  "name": "adda",
   "description": "Banglish in chat, English in everything shipped.",
   "owner": {
     "name": "MD. RAKIBUL HASAN",
@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "banglish",
+      "name": "adda",
       "description": "Talk to Claude in Banglish while code, commits, and docs stay in English.",
       "source": "./",
       "category": "productivity"

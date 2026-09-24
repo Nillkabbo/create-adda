@@ -5,7 +5,7 @@ import { buildPlan, applyPlan } from '../src/plan.js';
 import { sandbox, read, exists, write } from './helpers.js';
 
 // Prefix shared by both start markers (plain and created-file).
-const START = '<!-- banglish-agent:start';
+const START = '<!-- adda:start';
 
 function install(env, options) {
   const plan = buildPlan(options, env);
@@ -21,7 +21,7 @@ test('claude project scope writes CLAUDE.local.md at the git root and gitignores
   assert.ok(rules.startsWith(START));
   assert.match(rules, /Talk to the developer in Banglish/);
   assert.equal(exists(join(cwd, 'CLAUDE.local.md')), false);
-  assert.equal(read(join(repo, '.gitignore')), '# banglish-agent\nCLAUDE.local.md\n');
+  assert.equal(read(join(repo, '.gitignore')), '# adda\nCLAUDE.local.md\n');
 });
 
 test('claude global scope appends a block to ~/.claude/CLAUDE.md without losing user notes', () => {
@@ -61,12 +61,12 @@ test('cursor project scope writes an always-applied .mdc rule and gitignores it'
   const { repo, env } = sandbox();
   install(env, { targets: ['claude', 'cursor'], scopes: { claude: 'project', cursor: 'project' } });
 
-  const mdc = read(join(repo, '.cursor', 'rules', 'banglish.mdc'));
+  const mdc = read(join(repo, '.cursor', 'rules', 'adda.mdc'));
   assert.ok(mdc.startsWith('---\ndescription: Banglish in chat, English in everything shipped\nalwaysApply: true\n---\n'));
   assert.match(mdc, /Talk to the developer in Banglish/);
   assert.equal(
     read(join(repo, '.gitignore')),
-    '# banglish-agent\nCLAUDE.local.md\n.cursor/rules/banglish.mdc\n',
+    '# adda\nCLAUDE.local.md\n.cursor/rules/adda.mdc\n',
   );
 });
 
@@ -118,7 +118,7 @@ test('re-running refreshes an outdated block without duplicating anything', () =
   const { repo, env } = sandbox();
   write(
     join(repo, 'CLAUDE.local.md'),
-    '# Mine\n\n<!-- banglish-agent:start -->\nOld rule text.\n<!-- banglish-agent:end -->\n',
+    '# Mine\n\n<!-- adda:start -->\nOld rule text.\n<!-- adda:end -->\n',
   );
   const options = { targets: ['claude', 'cursor'], scopes: { claude: 'project', cursor: 'project' } };
   install(env, options);
@@ -141,7 +141,7 @@ test('remove undoes a project install, deleting files that only held the rules',
   install(env, { ...options, remove: true });
 
   assert.equal(exists(join(repo, 'CLAUDE.local.md')), false);
-  assert.equal(exists(join(repo, '.cursor', 'rules', 'banglish.mdc')), false);
+  assert.equal(exists(join(repo, '.cursor', 'rules', 'adda.mdc')), false);
   assert.equal(read(join(repo, '.gitignore')), 'node_modules/\n');
 });
 

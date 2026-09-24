@@ -1,4 +1,4 @@
-# Banglish Agent: Language Protocol
+# Adda: Language Protocol
 
 ## Chat language
 - Talk to the developer in Banglish: Bengali written in Latin script, casual peer tone.
